@@ -11,8 +11,8 @@ class StreamlitApp:
 
     def setup(self):
         # Load the datasets
-        df_before = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/Mi Reloj Interno/Data/allData_MiRelojInterno_27Marzo2023.csv')
-        df_after = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/PFC/Mi Reloj Interno/allData_MiRelojInterno_24Julio2024.csv')
+        df_before = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Data/allData_MiRelojInterno_27Marzo2023.csv')
+        df_after = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Data/allData_MiRelojInterno_24Julio2024.csv')
         self.df_all = pd.concat([df_before, df_after], ignore_index=True)
         
         # Convert date columns to datetime and sort the data
