@@ -263,4 +263,5 @@ if __name__ == "__main__":
     app.run()
 
 # To run the app, use the command:
-# streamlit run "/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/PFC/Main/main2.py"
+# streamlit run "/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main.py"
+# gola
