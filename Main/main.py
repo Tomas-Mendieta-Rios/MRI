@@ -69,8 +69,14 @@ class StreamlitApp:
             df_filtered = df_filtered.drop_duplicates(subset='user_id', keep='last')
         elif st.session_state.usuarios_entradas == 'Entradas':
             df_filtered = self.df_all.copy()
+       
+        # Add different logic based on whether 'Primera' or 'Segunda' is chosen
+        if st.session_state.entradas_subselection == 'Primera':
+            st.write("")
 
-        # Apply date filter if not all dates are selected
+        elif st.session_state.entradas_subselection == 'Segunda':
+            st.write("")
+    
         if not st.session_state.get('all_dates', True):
             date_min = pd.to_datetime(st.session_state['date_min'])
             date_max = pd.to_datetime(st.session_state['date_max'])
@@ -109,6 +115,7 @@ class StreamlitApp:
 
         # Save the filtered DataFrame in session state
         st.session_state['df_selected'] = df_filtered
+
 
     def display_sidebar(self):
         # Create the sidebar for filter options
@@ -157,21 +164,29 @@ class StreamlitApp:
             "Choose Option", 
             options=['Entradas', 'Usuarios']
         )
+        
+        # Add sub-selection for 'Entradas'
+        if st.session_state.usuarios_entradas == 'Entradas':
+            # Capture the selected option directly from the selectbox, don't assign manually to session state
+            entradas_subselection = st.sidebar.selectbox(
+                "Primera o segunda entrada", 
+                options=['Primera', 'Segunda'],
+                key='entradas_subselection'
+            )
             
+            # Use the selected value in your logic instead of modifying st.session_state
+            if entradas_subselection == 'Primera':
+                st.write("You selected 'Primera'.")
+            elif entradas_subselection == 'Segunda':
+                st.write("You selected 'Segunda'.")
+        
         # Plot type selection
-        st.session_state.plot_type = st.sidebar.selectbox(
-            "Select Plot Type",
-            options=[
-                "Distribution of Gender", 
-                "Distribution of Recommendations",
-                "Days Difference Histogram",
-                "Exposición a la luz"
-            ]
-        )
+        st.session_state.plot_type = st.sidebar.selectbox("Select Plot Type", options=["Exposición a la luz"])
 
         # Button to apply filters
         if st.sidebar.button("Apply Filters"):
             self.apply_filters()
+
 
     def categorize_age(self, df_filtered):
         # Function to categorize age based on user-defined age ranges
