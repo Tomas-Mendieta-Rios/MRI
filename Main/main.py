@@ -120,6 +120,8 @@ class StreamlitApp:
             st.session_state.date_min = self.df_all['date_recepcion_data'].min()
             st.session_state.date_max = self.df_all['date_recepcion_data'].max()
 
+
+        
         st.session_state.all_ages = st.sidebar.checkbox("All Ages", value=True, key='all_ages_checkbox')
         if not st.session_state.all_ages:
             st.session_state.age = st.sidebar.slider(
