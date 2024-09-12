@@ -60,7 +60,6 @@ class StreamlitApp:
         if 'categorize_ages' not in st.session_state:
             st.session_state.categorize_ages = False  # Default to not categorize ages
 
-
     def apply_filters(self):
         # Start with the unfiltered dataset
         df_filtered = self.df_all
