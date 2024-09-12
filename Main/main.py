@@ -62,9 +62,7 @@ class StreamlitApp:
             st.session_state.categorize_ages = False  # Default value for whether to categorize ages or not
 
     def apply_filters(self):
-        """
-        Apply the various filters chosen by the user, such as date range, age range, gender, and recommendations.
-        """
+  
 
         df_filtered = self.df_all
         
@@ -96,12 +94,25 @@ class StreamlitApp:
             
             # Filter users who followed or did not follow the recommendations within the specified day difference range
             if rec_filter == 'Si':
-                filtered_users = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'si') & (df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max)]['user_id'].unique()
-                df_filtered = df_filtered[df_filtered['user_id'].isin(filtered_users)]
+                # Filtramos las entradas donde siguieron las recomendaciones y cumplen con el rango de días
+                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'si') &(df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max) ]
+                indices = df.index
+                final_indices = []
+                for idx in indices:
+                    final_indices.append(idx)  # Agregamos la entrada actual
+                    if idx - 1 in df_filtered.index and df_filtered.loc[idx, 'user_id'] == df_filtered.loc[idx - 1, 'user_id']:
+                        final_indices.append(idx - 1)
+                df_filtered = df_filtered.loc[final_indices]
+                
             elif rec_filter == 'No':
-                filtered_users = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'no') & (df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max)]['user_id'].unique()
-                df_filtered = df_filtered[df_filtered['user_id'].isin(filtered_users)]
-
+                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'no') &(df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max) ]
+                indices = df.index
+                final_indices = []
+                for idx in indices:
+                    final_indices.append(idx)  # Agregamos la entrada actual
+                    if idx - 1 in df_filtered.index and df_filtered.loc[idx, 'user_id'] == df_filtered.loc[idx - 1, 'user_id']:
+                        final_indices.append(idx - 1)
+                df_filtered = df_filtered.loc[final_indices]
 
 
         st.session_state['df_selected'] = df_filtered
@@ -120,8 +131,6 @@ class StreamlitApp:
             st.session_state.date_min = self.df_all['date_recepcion_data'].min()
             st.session_state.date_max = self.df_all['date_recepcion_data'].max()
 
-
-        
         st.session_state.all_ages = st.sidebar.checkbox("All Ages", value=True, key='all_ages_checkbox')
         if not st.session_state.all_ages:
             st.session_state.age = st.sidebar.slider(
