@@ -62,26 +62,23 @@ class StreamlitApp:
             st.session_state.categorize_ages = False  # Default value for whether to categorize ages or not
 
     def apply_filters(self):
-  
-
         df_filtered = self.df_all
-        
+
         # Check if the filter for 'Entradas' or 'Usuarios' is set
         if st.session_state['entradas_usuarios'] == 'Usuarios':
             df_filtered = df_filtered.drop_duplicates(subset='user_id', keep='last')
 
-            
         # Apply date filters if 'All Dates' is not selected
         if not st.session_state.get('all_dates', True):
             date_min = pd.to_datetime(st.session_state['date_min'])
             date_max = pd.to_datetime(st.session_state['date_max'])
             df_filtered = df_filtered[(df_filtered['date_recepcion_data'] >= date_min) & (df_filtered['date_recepcion_data'] <= date_max)]
-        
+
         # Apply age filters if 'All Ages' is not selected
         if not st.session_state.get('all_ages', True):
             age_min, age_max = st.session_state['age']
             df_filtered = df_filtered[(df_filtered['age'] >= age_min) & (df_filtered['age'] <= age_max)]
-        
+
         # Apply gender filters if a specific gender is selected
         if st.session_state.get('selected_gender', 'All') != 'All':
             df_filtered = df_filtered[df_filtered['genero'] == st.session_state['selected_gender']]
@@ -91,38 +88,40 @@ class StreamlitApp:
             days_min = st.session_state['selected_recomendaciones_rango_min']
             days_max = st.session_state['selected_recomendaciones_rango_max']
             rec_filter = st.session_state['selected_recomendaciones']
-            
+
             # Filter users who followed or did not follow the recommendations within the specified day difference range
             if rec_filter == 'Si':
-                # Filtramos las entradas donde siguieron las recomendaciones y cumplen con el rango de días
-                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'si') &(df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max) ]
-                indices = df.index
-                final_indices = []
-                for idx in indices:
-                    final_indices.append(idx)  # Agregamos la entrada actual
-                    if idx - 1 in df_filtered.index and df_filtered.loc[idx, 'user_id'] == df_filtered.loc[idx - 1, 'user_id']:
-                        final_indices.append(idx - 1)
-                df_filtered = df_filtered.loc[final_indices]
-                
+                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'si') & (df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max)]
             elif rec_filter == 'No':
-                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'no') &(df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max) ]
-                indices = df.index
-                final_indices = []
-                for idx in indices:
-                    final_indices.append(idx)  # Agregamos la entrada actual
-                    if idx - 1 in df_filtered.index and df_filtered.loc[idx, 'user_id'] == df_filtered.loc[idx - 1, 'user_id']:
-                        final_indices.append(idx - 1)
-                df_filtered = df_filtered.loc[final_indices]
+                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'no') & (df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max)]
 
+            # Capturamos las entradas anteriores y actuales
+            indices = df.index
+            final_indices = []
+            for idx in indices:
+                final_indices.append(idx)  # Agregamos la entrada actual
+                if idx - 1 in df_filtered.index and df_filtered.loc[idx, 'user_id'] == df_filtered.loc[idx - 1, 'user_id']:
+                    final_indices.append(idx - 1)  # Agregamos la entrada anterior si existe
+
+            df_filtered = df_filtered.loc[final_indices]
+
+            # Aplicar el filtro "Ambas, Antes, Después"
+            if st.session_state.antes_despues == "antes":
+                df_filtered = df_filtered.drop_duplicates(subset='user_id', keep='first')
+            elif st.session_state.antes_despues == "despues":
+                df_filtered = df_filtered.drop_duplicates(subset='user_id', keep='last')
 
         st.session_state['df_selected'] = df_filtered
 
+
     def display_sidebar(self):
-      
+
         st.sidebar.header('Filter Options')
-        
+
+        # Filtro para seleccionar si mostrar todas las entradas o solo los usuarios
         st.sidebar.selectbox("Entrada Usuarios", options=["Entradas", "Usuarios"], key='entradas_usuarios')
-        
+
+        # Filtro por fechas
         st.session_state.all_dates = st.sidebar.checkbox("All Dates", value=True, key='all_dates_checkbox')
         if not st.session_state.all_dates:
             st.session_state.date_min = st.sidebar.date_input("Start Date", value=self.df_all['date_recepcion_data'].min(), key='start_date_input')
@@ -131,37 +130,43 @@ class StreamlitApp:
             st.session_state.date_min = self.df_all['date_recepcion_data'].min()
             st.session_state.date_max = self.df_all['date_recepcion_data'].max()
 
+        # Filtro por edades
         st.session_state.all_ages = st.sidebar.checkbox("All Ages", value=True, key='all_ages_checkbox')
         if not st.session_state.all_ages:
             st.session_state.age = st.sidebar.slider(
-                "Age Range", 
-                min_value=int(self.df_all['age'].min()), 
-                max_value=int(self.df_all['age'].max()), 
+                "Age Range",
+                min_value=int(self.df_all['age'].min()),
+                max_value=int(self.df_all['age'].max()),
                 value=(int(self.df_all['age'].min()), int(self.df_all['age'].max())),
                 key='age_range_slider'
             )
         else:
             st.session_state.age = [self.df_all['age'].min(), self.df_all['age'].max()]
-        
-        # Gender filter: 'All Genders' checkbox and gender selectbox
+
+        # Filtro por género
         st.session_state.all_genders = st.sidebar.checkbox("All Genders", value=True, key='all_genders_checkbox')
         if not st.session_state.all_genders:
             st.session_state.selected_gender = st.sidebar.selectbox("Select Gender", options=self.df_all['genero'].unique().tolist(), key='gender_selectbox')
         else:
             st.session_state.selected_gender = 'All'
 
-        # Recommendations filter: 'All Recommendations' checkbox and input options for recommendation-based filters
+        # Filtro por recomendaciones
         st.session_state.all_recomendaciones = st.sidebar.checkbox("All Recommendations", value=True, key='all_recommendations_checkbox')
         if not st.session_state.all_recomendaciones:
             st.session_state.selected_recomendaciones = st.sidebar.selectbox("Seguiste recomendaciones", options=['Si', 'No'], key='recommendations_selectbox')
             st.session_state.selected_recomendaciones_rango_min = st.sidebar.number_input("Min days difference", min_value=0, max_value=100, value=st.session_state.selected_recomendaciones_rango_min, key='min_days_diff_input')
             st.session_state.selected_recomendaciones_rango_max = st.sidebar.number_input("Max days difference", min_value=0, max_value=100, value=st.session_state.selected_recomendaciones_rango_max, key='max_days_diff_input')
+
+            # Mostrar "Ambas, Antes, Después" solo si seleccionan "Si" o "No"
+            if st.session_state.selected_recomendaciones in ['Si', 'No']:
+                st.session_state.antes_despues = st.sidebar.selectbox("Ambas Antes Después", options=["Ambas", "Antes", "Después"], key='ambas_antes_despues')
+
         else:
             st.session_state.selected_recomendaciones = 'All'
             st.session_state.selected_recomendaciones_rango_min = 0
             st.session_state.selected_recomendaciones_rango_max = 30
 
-        # Age categorization filter: 'Categorize Ages' checkbox and sliders for age category ranges
+        # Filtro para la categorización por edad
         st.session_state.categorize_ages = st.sidebar.checkbox("Categorize Ages", value=st.session_state.categorize_ages, key='categorize_ages_checkbox')
 
         if st.session_state.categorize_ages:
@@ -174,7 +179,7 @@ class StreamlitApp:
         st.session_state.plot_type = st.sidebar.selectbox(
             "Select Plot Type",
             options=[
-                "Distribution of Gender", 
+                "Distribution of Gender",
                 "Distribution of Recommendations",
                 "Days Difference Histogram",
                 "Exposición a la luz"
