@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
+print("prueba")
 class StreamlitApp:
     def __init__(self):
         self.df_all = pd.DataFrame()  
