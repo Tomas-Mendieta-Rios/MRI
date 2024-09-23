@@ -15,10 +15,7 @@ class StreamlitApp:
         self.initialize_filters()
 
     def setup(self):
-        """
-        Load and concatenate the two datasets (before and after),
-        process date columns, and calculate the difference in days between consecutive entries for each user.
-        """
+  
         # Load two CSV datasets, one before and one after a certain date
         df_before = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Data/allData_MiRelojInterno_27Marzo2023.csv')
         df_after = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Data/allData_MiRelojInterno_24Julio2024.csv')
