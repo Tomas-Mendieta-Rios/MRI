@@ -52,14 +52,17 @@ class StreamlitApp:
             st.session_state.selected_gender = 'All'
         if 'df_selected' not in st.session_state:
             st.session_state.df_selected = self.df_all
+
         if 'selected_recomendaciones' not in st.session_state:
-            st.session_state.selected_recomendaciones = 'All'
+            st.session_state.selected_recomendaciones = 'ambas'
         if 'selected_recomendaciones_rango_min' not in st.session_state:
             st.session_state.selected_recomendaciones_rango_min = 0
         if 'selected_recomendaciones_rango_max' not in st.session_state:
             st.session_state.selected_recomendaciones_rango_max = 30
         if 'categorize_ages' not in st.session_state:
             st.session_state.categorize_ages = False  # Default value for whether to categorize ages or not
+        if 'antes_despues' not in st.session_state:
+            st.session_state.antes_despues = 'Ambas'  # Default value for whether to categorize ages or not
 
     def apply_filters(self):
         df_filtered = self.df_all
@@ -83,36 +86,82 @@ class StreamlitApp:
         if st.session_state.get('selected_gender', 'All') != 'All':
             df_filtered = df_filtered[df_filtered['genero'] == st.session_state['selected_gender']]
 
-        # Apply recommendation-based filters if specific options are selected
         if st.session_state.get('selected_recomendaciones', 'All') != 'All':
+            # Retrieve session state values
             days_min = st.session_state['selected_recomendaciones_rango_min']
             days_max = st.session_state['selected_recomendaciones_rango_max']
             rec_filter = st.session_state['selected_recomendaciones']
-
-            # Filter users who followed or did not follow the recommendations within the specified day difference range
-            if rec_filter == 'Si':
-                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'si') & (df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max)]
-            elif rec_filter == 'No':
-                df = df_filtered[(df_filtered['SEGUISTE_RECOMENDACIONES'] == 'no') & (df_filtered['days_diff'] > days_min) & (df_filtered['days_diff'] <= days_max)]
-
-            # Capturamos las entradas anteriores y actuales
-            indices = df.index
+            when_filter = st.session_state['ambas_antes_despues']
+            
+            # Sort and reset index to have a clean sequential index
+            df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+            df_filtered = df_filtered.reset_index(drop=True)
+            
+            # Initialize list to store final indices
             final_indices = []
-            for idx in indices:
-                final_indices.append(idx)  # Agregamos la entrada actual
-                if idx - 1 in df_filtered.index and df_filtered.loc[idx, 'user_id'] == df_filtered.loc[idx - 1, 'user_id']:
-                    final_indices.append(idx - 1)  # Agregamos la entrada anterior si existe
 
-            df_filtered = df_filtered.loc[final_indices]
+            # Apply filtering based on recommendation ("Si" or "No")
+            for idx in range(1, len(df_filtered)):  # Start from 1 to avoid out-of-bounds for idx-1
+                if df_filtered.loc[idx - 1, 'user_id'] == df_filtered.loc[idx, 'user_id']:
+                    # Check for both 'si' and 'no' recommendations if 'ambas' is selected
+                    if rec_filter == 'ambas':
+                        if df_filtered.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
+                            if days_min <= df_filtered.loc[idx, 'days_diff'] <= days_max:
+                                if when_filter == 'Ambas':
+                                    final_indices.append(idx - 1)
+                                    final_indices.append(idx)
+                                elif when_filter == 'Antes':
+                                    final_indices.append(idx - 1)
+                                elif when_filter == 'Después':
+                                    final_indices.append(idx)
 
-            # Aplicar el filtro "Ambas, Antes, Después"
-            if st.session_state.antes_despues == "antes":
-                df_filtered = df_filtered.drop_duplicates(subset='user_id', keep='first')
-            elif st.session_state.antes_despues == "despues":
-                df_filtered = df_filtered.drop_duplicates(subset='user_id', keep='last')
+                    # Filter for 'si' recommendations
+                    elif rec_filter == 'si' and df_filtered.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
+                        if days_min <= df_filtered.loc[idx, 'days_diff'] <= days_max:
+                            if when_filter == 'Ambas':
+                                final_indices.append(idx - 1)
+                                final_indices.append(idx)
+                            elif when_filter == 'Antes':
+                                final_indices.append(idx - 1)
+                            elif when_filter == 'Después':
+                                final_indices.append(idx)
 
+                    # Filter for 'no' recommendations
+                    elif rec_filter == 'no' and df_filtered.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
+                        if days_min <= df_filtered.loc[idx, 'days_diff'] <= days_max:
+                            if when_filter == 'Ambas':
+                                final_indices.append(idx - 1)
+                                final_indices.append(idx)
+                            elif when_filter == 'Antes':
+                                final_indices.append(idx - 1)
+                            elif when_filter == 'Después':
+                                final_indices.append(idx)
+            
+            # Filter the DataFrame based on the indices
+            df_filtered = df_filtered.loc[final_indices].reset_index(drop=True)
+
+
+        # Store the filtered DataFrame in the session state
+        column_order = [
+        'date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia', 'localidad',
+         'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion',
+        'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
+        'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no',
+        'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw',
+        'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir',
+        'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7',
+        'MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19',
+        'rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
+        'rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no',
+        'rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado'
+         ]
+        df = self.df_all [column_order]
+        df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+        st.write(df)
+        df_filtered = df_filtered[column_order]
+        df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
         st.session_state['df_selected'] = df_filtered
-
+ 
 
     def display_sidebar(self):
 
@@ -153,13 +202,10 @@ class StreamlitApp:
         # Filtro por recomendaciones
         st.session_state.all_recomendaciones = st.sidebar.checkbox("All Recommendations", value=True, key='all_recommendations_checkbox')
         if not st.session_state.all_recomendaciones:
-            st.session_state.selected_recomendaciones = st.sidebar.selectbox("Seguiste recomendaciones", options=['Si', 'No'], key='recommendations_selectbox')
+            st.session_state.selected_recomendaciones = st.sidebar.selectbox("Seguiste recomendaciones", options=['si', 'no', 'ambas'], key='recommendations_selectbox')
             st.session_state.selected_recomendaciones_rango_min = st.sidebar.number_input("Min days difference", min_value=0, max_value=100, value=st.session_state.selected_recomendaciones_rango_min, key='min_days_diff_input')
             st.session_state.selected_recomendaciones_rango_max = st.sidebar.number_input("Max days difference", min_value=0, max_value=100, value=st.session_state.selected_recomendaciones_rango_max, key='max_days_diff_input')
-
-            # Mostrar "Ambas, Antes, Después" solo si seleccionan "Si" o "No"
-            if st.session_state.selected_recomendaciones in ['Si', 'No']:
-                st.session_state.antes_despues = st.sidebar.selectbox("Ambas Antes Después", options=["Ambas", "Antes", "Después"], key='ambas_antes_despues')
+            st.session_state.antes_despues = st.sidebar.selectbox("Ambas Antes Después", options=["Ambas", "Antes", "Después"], key='ambas_antes_despues')
 
         else:
             st.session_state.selected_recomendaciones = 'All'
