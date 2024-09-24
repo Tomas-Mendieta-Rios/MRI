@@ -1,19 +1,10 @@
-class Calculator:
-    def __init__(self):
-        self.result = 0  # Initializes the internal state
+import pandas as pd
 
-    def add(self, x, y):
-        self.result = x + y  # Updates the internal state
-        return self.result
+# Load the CSV file
+df = pd.read_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Data/All.csv')
 
-    def subtract(self, x, y):
-        self.result = x - y  # Updates the internal state
-        return self.result
+# Drop duplicate values based on the 'Provinica' column
+df = df.drop_duplicates(subset=['provincia'])
 
-Calculator().add(5,3)
+df.to_csv('/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Data/Loc.csv', index=False)
 
-print(Calculator().result)
-
-calc = Calculator()  # Creates a Calculator instance
-calc.add(5, 3)  # Updates result to 8
-print(calc.result)  # Now prints 8, since calc.result was updated

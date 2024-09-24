@@ -4,21 +4,29 @@ import streamlit as st
 import seaborn as sb
 import matplotlib.pyplot as plt
 import pydeck as pdk
+from geopy.geocoders import Nominatim
+import time
 
 # Define the main StreamlitApp class
 class DataLoader:
     
     def __init__(self):
         self.df_all = pd.DataFrame()
+
         
-    def load_data(self, before_path, after_path):
+    def load_data(self, before_path, after_path, geo_path):
         df_before = pd.read_csv(before_path)
         df_after = pd.read_csv(after_path)
+        df_geo = pd.read_csv(geo_path,sep=';')
+        
         self.df_all = pd.concat([df_before, df_after], ignore_index=True)
         self.df_all['date_recepcion_data'] = pd.to_datetime(self.df_all['date_recepcion_data'])
         self.df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
         self.df_all.reset_index(drop=True, inplace=True)
         self.df_all['days_diff'] = self.df_all.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
+        self.df_all = pd.merge(self.df_all, df_geo, how='left', on='provincia')
+
+
         return self.df_all
 
 class StreamLit:
@@ -60,10 +68,9 @@ class StreamLit:
             st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
        
         st.sidebar.title('Plotting Options')
-        st.sidebar.selectbox("Choose plot type", ["Histogram", "Scatter", "Bar", "Line", "Box"])
-        st.sidebar.selectbox("Choose plot ", ["date_recepcion_data", "Scatter", "Bar", "Line", "Box"])
-        
-        
+        st.sidebar.selectbox("Choose plot type", ["Histogram", "Scatter", "Bar", "Line", "Box","Map"])
+        st.sidebar.selectbox("Choose plot ", ["Location distribution", "Scatter", "Bar", "Line", "Box"])
+               
     def initialize_filters(self):
         if 'age_range_slider' not in st.session_state:
             st.session_state['age_range_slider'] = [self.df_all['age'].min(), self.df_all['age'].max()]
@@ -198,18 +205,46 @@ class Filters:
 
         return self.result
             
-class PlotGenerator():
-    def __init__(self,df):
-        self.df_all = df
+class PlotGenerator:
+    def __init__(self, df):
+        self.df_all = df  # Store the DataFrame
+
+    def map(self):
+        # Define the HeatmapLayer
+        layer = pdk.Layer(
+            "HeatmapLayer",
+            data=self.df_all,  # Use your DataFrame with latitude and longitude
+            get_position='[Longitude, Latitude]',  # Specify the columns for longitude and latitude
+            opacity=0.9,  # Heatmap opacity
+            radius_pixels=100,  # Radius of influence in pixels
+            intensity=1,  # Intensity of the heatmap
+        )
+
+        # Define the view (center of the map)
+        view_state = pdk.ViewState(
+            latitude=self.df_all['Latitude'].mean(),  # Center the map by the mean latitude
+            longitude=self.df_all['Longitude'].mean(),  # Center the map by the mean longitude
+            zoom=5,  # Zoom level
+            pitch=50  # Tilt the map for a 3D effect
+        )
+        # Add a tooltip to display quantities when hovering
+        tooltip = {"html": "<b>Province:</b> {provincia}<br><b>Quantity:</b> {quantity}","style": {"backgroundColor": "steelblue","color": "white"}
+        }
+        # Create the PyDeck deck object
+        deck = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
+
+        # If using Streamlit, render the PyDeck chart
+        st.pydeck_chart(deck)
+
+ 
     
-       
-    
+  
 
         
-        
+
 def main():
     data_loader = DataLoader()
-    df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv')
+    df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv','Data/Geo.csv')
     
     streamlit_app = StreamLit(df_all)
     streamlit_app.sidebar()
@@ -218,7 +253,7 @@ def main():
     df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
    
-    column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia', 'localidad','RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+    column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     
     df_filtered = df_filtered[column_order]
     df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
@@ -226,7 +261,10 @@ def main():
     
     df_all = df_all[column_order]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-    
+
+
+    # Display the results in Streamlit
+
     st.write('df_all')
     st.write(f'Cantidad de usuarios: {len(df_all)}')  
     st.write(df_all)
@@ -234,6 +272,11 @@ def main():
     st.write('Data filtrada')
     st.write(f'Cantidad de usuarios: {len(df_filtered)}')  
     st.write(df_filtered)
+
+    plot_generator = PlotGenerator(df_all)
+    
+    # Call the map method to display the map
+    plot_generator.map()
 
 main()
 
