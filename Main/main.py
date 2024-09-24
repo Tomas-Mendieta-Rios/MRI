@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-import plotly.express as px
+import seaborn as sb
+import matplotlib.pyplot as plt
+import pydeck as pdk
 
 # Define the main StreamlitApp class
 class DataLoader:
@@ -56,6 +58,11 @@ class StreamLit:
             st.sidebar.slider("Min Age for Jóvenes", min_value=0, max_value=100,  key='age_joven_min_slider')
             st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100, value=30, key='age_adult_min_slider')
             st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
+       
+        st.sidebar.title('Plotting Options')
+        st.sidebar.selectbox("Choose plot type", ["Histogram", "Scatter", "Bar", "Line", "Box"])
+        st.sidebar.selectbox("Choose plot ", ["date_recepcion_data", "Scatter", "Bar", "Line", "Box"])
+        
         
     def initialize_filters(self):
         if 'age_range_slider' not in st.session_state:
@@ -191,6 +198,15 @@ class Filters:
 
         return self.result
             
+class PlotGenerator():
+    def __init__(self,df):
+        self.df_all = df
+    
+       
+    
+
+        
+        
 def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv')
