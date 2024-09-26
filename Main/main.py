@@ -1,24 +1,26 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-import seaborn as sb
+import seaborn as sns
 import matplotlib.pyplot as plt
 import pydeck as pdk
 from geopy.geocoders import Nominatim
 import time
+import plotly.express as px
 
-# Define the main StreamlitApp class
+
+
+plot_options = { "Distribución localidades": "provincia", "Exposición luz natural": "FOTICO_luz_natural_8_15_integrada"}
 class DataLoader:
     
     def __init__(self):
         self.df_all = pd.DataFrame()
-
         
     def load_data(self, before_path, after_path, geo_path):
         df_before = pd.read_csv(before_path)
         df_after = pd.read_csv(after_path)
         df_geo = pd.read_csv(geo_path,sep=';')
-        
+
         self.df_all = pd.concat([df_before, df_after], ignore_index=True)
         self.df_all['date_recepcion_data'] = pd.to_datetime(self.df_all['date_recepcion_data'])
         self.df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
@@ -26,14 +28,15 @@ class DataLoader:
         self.df_all['days_diff'] = self.df_all.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
         self.df_all = pd.merge(self.df_all, df_geo, how='left', on='provincia')
 
-
         return self.df_all
 
 class StreamLit:
     
-    def __init__(self, df):
-        self.df_all = df
+    def __init__(self,df):
+       
+        self.df = df
         self.initialize_filters()
+        
    
     def sidebar(self):
         st.sidebar.header('Filter Options')
@@ -42,58 +45,53 @@ class StreamLit:
 
         st.sidebar.checkbox("All Dates",  key='all_dates_checkbox')
         if not st.session_state['all_dates_checkbox']:
-            st.sidebar.date_input("Start Date", value=self.df_all['date_recepcion_data'].min(), key='start_date_input')
-            st.sidebar.date_input("End Date", value=self.df_all['date_recepcion_data'].max(), key='end_date_input')
+            st.sidebar.date_input("Start Date", value=self.df['date_recepcion_data'].min(), key='start_date_input')
+            st.sidebar.date_input("End Date", value=self.df['date_recepcion_data'].max(), key='end_date_input')
 
         st.sidebar.checkbox("All Ages", key='all_ages_checkbox')
         if not st.session_state['all_ages_checkbox']:
-            st.sidebar.slider("Age Range", min_value=int(self.df_all['age'].min()),max_value=int(self.df_all['age'].max()),value=(int(self.df_all['age'].min()), int(self.df_all['age'].max())),key='age_range_slider')
+            st.sidebar.slider("Age Range", min_value=int(self.df['age'].min()),max_value=int(self.df['age'].max()),value=(int(self.df_all['age'].min()), int(self.df_all['age'].max())),key='age_range_slider')
 
         st.sidebar.checkbox("All Genders",  key='all_genders_checkbox')
         if not st.session_state['all_genders_checkbox']:
-            st.sidebar.selectbox("Select Gender", options=self.df_all['genero'].unique().tolist(), key='gender_selectbox')
+            st.sidebar.selectbox("Select Gender", options=self.df['genero'].unique().tolist(), key='gender_selectbox')
 
         st.sidebar.checkbox("All Recommendations", key='all_recommendations_checkbox')
         if not st.session_state['all_recommendations_checkbox']:
             st.sidebar.selectbox("Seguiste recomendaciones", options=['Si', 'No', 'Ambas'], key='recommendations_selectbox')
             st.sidebar.number_input("Min days difference", min_value=0, max_value=100, key='min_days_diff_input')
-            st.sidebar.number_input("Max days difference", min_value=0, max_value=100, key='max_days_diff_input')
+            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, key='max_days_diff_input')
             st.sidebar.selectbox("Ambas Antes Después", options=["Ambas", "Antes", "Después"], key='ambas_antes_despues')
 
-        st.sidebar.checkbox("Categorize Ages",  key='categorize_ages_checkbox')
-        if st.session_state['categorize_ages_checkbox']:
-            st.sidebar.subheader("Define Age Categories")
-            st.sidebar.slider("Min Age for Jóvenes", min_value=0, max_value=100,  key='age_joven_min_slider')
-            st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100, value=30, key='age_adult_min_slider')
-            st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
-       
+        st.sidebar.subheader("Define Age Categories")
+        st.sidebar.slider("Min Age for Jóvenes", min_value=0, max_value=100,  key='age_joven_min_slider')
+        st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100, value=30, key='age_adult_min_slider')
+        st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
+        
         st.sidebar.title('Plotting Options')
-        st.sidebar.selectbox("Choose plot type", ["Histogram", "Scatter", "Bar", "Line", "Box","Map"])
-        st.sidebar.selectbox("Choose plot ", ["Location distribution", "Scatter", "Bar", "Line", "Box"])
+        st.sidebar.selectbox("Choose plot", list(plot_options.keys()), key='plot')
+        st.sidebar.selectbox("Plotear categroías de edad", options=["Si", "No"], key='plot_age_cat')
+
                
     def initialize_filters(self):
         if 'age_range_slider' not in st.session_state:
-            st.session_state['age_range_slider'] = [self.df_all['age'].min(), self.df_all['age'].max()]
+            st.session_state['age_range_slider'] = [self.df['age'].min(), self.df['age'].max()]
         if 'selected_gender' not in st.session_state:
             st.session_state['selected_gender'] = 'All'
         if 'df_selected' not in st.session_state:
-            st.session_state['df_selected'] = self.df_all
+            st.session_state['df_selected'] = self.df
         if 'recommendations_selectbox' not in st.session_state:
             st.session_state['recommendations_selectbox'] = 'Ambas'
         if 'min_days_diff_input' not in st.session_state:
             st.session_state['min_days_diff_input'] = 0
         if 'max_days_diff_input' not in st.session_state:
             st.session_state['max_days_diff_input'] = 30
-        
-        if 'categorize_ages_checkbox' not in st.session_state:
-            st.session_state['categorize_ages_checkbox'] = False
         if 'age_joven_min_slider' not in st.session_state:
             st.session_state['age_joven_min_slider'] = 13
         if 'age_adult_min_slider' not in st.session_state:
             st.session_state['age_adult_min_slider'] = 60
         if 'age_tercera_edad_min_slider' not in st.session_state:
-            st.session_state['age_tercera_edad_min_slider'] = 60 
-        
+            st.session_state['age_tercera_edad_min_slider'] = 70
         if 'antes_despues' not in st.session_state:
             st.session_state['antes_despues'] = 'Ambas'
         if 'entradas_usuarios_filter' not in st.session_state:
@@ -190,7 +188,7 @@ class Filters:
         if not st.session_state['all_ages_checkbox']:  
             self.ages()
 
-        if st.session_state['categorize_ages_checkbox']:  
+        if st.session_state['age_joven_min_slider'] or st.session_state['age_adult_min_slider'] or st.session_state['age_tercera_edad_min_slider'] :  
             self.categorize_age()
             
         if not st.session_state['all_genders_checkbox']:  
@@ -201,19 +199,69 @@ class Filters:
         
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
             self.entries_users()
-        
 
         return self.result
             
 class PlotGenerator:
-    def __init__(self, df):
-        self.df_all = df  # Store the DataFrame
+    def __init__(self,df):
+        self.df = df  # Store the DataFrame
+    def choose_plot(self):
+        if 'plot' in st.session_state:
+            if st.session_state['plot'] == 'Exposición luz natural':
+                self.histo_plot()
+            if st.session_state['plot'] == "Distribución localidades":
+                self.map()
+    def histo_plot(self):
+        if 'age_category' in self.df.columns and st.session_state['plot_age_cat'] == "Si":
+       
+            # Create a figure with 3 subplots (1 row, 3 columns)
+            fig, axes = plt.subplots(3, 1, figsize=(8, 12), sharex=True, sharey=True)
+            # Filter data by age category
+            jovenes = self.df[self.df['age_category'] == 'Jóvenes']
+            adultos = self.df[self.df['age_category'] == 'Adultos']
+            tercera_edad = self.df[self.df['age_category'] == 'Tercera Edad']
 
+            # Plot for Jóvenes
+            sns.histplot(data=jovenes, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[0])
+            axes[0].set_title('Jóvenes')
+            axes[0].set_xlabel('Categoría')
+            axes[0].set_ylabel('Cantidad')
+            axes[0].set_xticks([0, 1, 2])
+
+            # Plot for Adultos
+            sns.histplot(data=adultos, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='orange', ax=axes[1])
+            axes[1].set_title('Adultos')
+            axes[1].set_xlabel('Categoría')
+            axes[1].set_ylabel('Cantidad')
+            axes[1].set_xticks([0, 1, 2])
+
+            # Plot for Tercera Edad
+            sns.histplot(data=tercera_edad, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='green', ax=axes[2])
+            axes[2].set_title('Tercera Edad')
+            axes[2].set_xlabel('Categoría')
+            axes[2].set_ylabel('Cantidad')
+            axes[2].set_xticks([0, 1, 2])
+
+            # Adjust layout to prevent overlap
+            plt.tight_layout()
+
+            # Display the plot in Streamlit
+            st.pyplot(fig)
+
+
+        else:
+            # Plot without the hue for age_category if it's not selected
+            sns.histplot(data=self.df, x=plot_options[st.session_state['plot']], kde=False, discrete=True)
+            plt.title(st.session_state['plot'])
+            plt.xlabel('Categorías')
+            plt.ylabel('Cantidad')
+            st.pyplot()
+        
     def map(self):
-        # Define the HeatmapLayer
+        
         layer = pdk.Layer(
             "HeatmapLayer",
-            data=self.df_all,  # Use your DataFrame with latitude and longitude
+            data=self.df,  # Use your DataFrame with latitude and longitude
             get_position='[Longitude, Latitude]',  # Specify the columns for longitude and latitude
             opacity=0.9,  # Heatmap opacity
             radius_pixels=100,  # Radius of influence in pixels
@@ -222,8 +270,8 @@ class PlotGenerator:
 
         # Define the view (center of the map)
         view_state = pdk.ViewState(
-            latitude=self.df_all['Latitude'].mean(),  # Center the map by the mean latitude
-            longitude=self.df_all['Longitude'].mean(),  # Center the map by the mean longitude
+            latitude=self.df['Latitude'].mean(),  # Center the map by the mean latitude
+            longitude=self.df['Longitude'].mean(),  # Center the map by the mean longitude
             zoom=5,  # Zoom level
             pitch=50  # Tilt the map for a 3D effect
         )
@@ -236,12 +284,6 @@ class PlotGenerator:
         # If using Streamlit, render the PyDeck chart
         st.pydeck_chart(deck)
 
- 
-    
-  
-
-        
-
 def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv','Data/Geo.csv')
@@ -252,18 +294,14 @@ def main():
     filters = Filters(df_all)
     df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
-   
-    column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     
+    column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+    column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     df_filtered = df_filtered[column_order]
     df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
    
-    
-    df_all = df_all[column_order]
+    df_all = df_all[column_order_df_all]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-
-
-    # Display the results in Streamlit
 
     st.write('df_all')
     st.write(f'Cantidad de usuarios: {len(df_all)}')  
@@ -273,10 +311,8 @@ def main():
     st.write(f'Cantidad de usuarios: {len(df_filtered)}')  
     st.write(df_filtered)
 
-    plot_generator = PlotGenerator(df_all)
-    
-    # Call the map method to display the map
-    plot_generator.map()
+    plot_generator = PlotGenerator(df_filtered)
+    plot_generator.choose_plot()
 
 main()
 
