@@ -3,10 +3,7 @@ import pandas as pd
 import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib as matplotlib
 import pydeck as pdk
-from geopy.geocoders import Nominatim
-import time
 import plotly.express as px
 st.set_page_config(layout="wide")
 
@@ -73,17 +70,17 @@ class StreamLit:
         st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
         
         st.sidebar.title('Plotting Options')
-        st.sidebar.selectbox("Sueño", list(plot_options.keys()), key='sueño')
+        
         st.sidebar.selectbox("Caracteristicas", list(plot_options.keys()), key='plot')
         if st.session_state['plot'] != "Distribución localidades":
              st.sidebar.selectbox("Plotear", options=["Nada","Rango etario", "Género", "Rango Etario y Sexo"], key='plot_cat')
-       
+        st.sidebar.selectbox("Sueño", list(plot_sleep.keys()), key='sueño')
         
         
         
     def initialize_filters(self):
-        #if 'plot' not in st.session_state:
-         #   st.session_state['plot'] = "Exposición luz natural"
+        if 'plot' not in st.session_state:
+            st.session_state['plot'] = "Exposición luz natural"
         if 'plot_cat' not in st.session_state:
             st.session_state['plot_cat'] = "Nada"
         if 'age_range_slider' not in st.session_state:
@@ -396,7 +393,7 @@ class PlotGenerator:
             ax.set_ylabel('')
             ax.set_xticks(self.xtick)
             st.pyplot(fig)
-
+    
     def map(self):
         
         layer = pdk.Layer(
