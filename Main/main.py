@@ -22,7 +22,7 @@ data_dictionary = {
     'Exposición luz artificial': 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
     'Estudios no foticos integrados': 'NOFOTICO_estudios_integrada',
     'Trabajo no fotico integrado': 'NOFOTICO_trabajo_integrada',
-    'Otra actividad habitual no fotica (sí/no)': 'NOFOTICO_otra_actividad_habitual_si_no',
+    'Otra actividad habitual no fotica': 'NOFOTICO_otra_actividad_habitual_si_no',
     'Cena no fotica integrada': 'NOFOTICO_cena_integrada',
     'Horario de acostarse (habitual)': 'HAB_Hora_acostar',
     'Horario decidir dormir (habitual)': 'HAB_Hora_decidir',
@@ -302,6 +302,8 @@ class PlotGenerator:
         
     def choose_plot(self):
         
+        if st.session_state['plot'] == 'Edad':
+            self.gauss()
         if st.session_state['plot'] == 'Exposición luz natural':
             self.xtick = [0,1,2]
             self.xtick_labels = ['0','1','2']
@@ -310,10 +312,92 @@ class PlotGenerator:
             self.xtick = [0,1]
             self.xtick_labels = ['0','1']
             self.histo_plot()
+        elif st.session_state['plot'] == "Otra actividad habitual no fotica":
+            self.xtick = [0,1]
+            self.xtick_labels = ['0','1']
+            self.histo_plot()
+        elif st.session_state['plot'] == "Estudios no foticos integrados":
+            self.xtick = [-1,0,1]
+            self.xtick_labels = ['-1','0','1']
+            self.histo_plot()
         elif st.session_state['plot'] == "Provincia":
             self.map()
 
+    def gauss(self):
 
+        # Histogram without 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.histplot(data=self.df, x='age', kde=False, bins=20, ax=ax)
+        ax.set_title('Age Distribution', fontsize=20)
+        ax.set_xlabel('Age', fontsize=15)
+        ax.set_ylabel('Count', fontsize=15)
+        st.pyplot(fig)
+
+        # KDE plot without 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.kdeplot(data=self.df, x='age', ax=ax, fill=True)
+        ax.set_title('Age Distribution (KDE)', fontsize=20)
+        ax.set_xlabel('Age', fontsize=15)
+        ax.set_ylabel('Density', fontsize=15)
+        st.pyplot(fig)
+
+
+        # Box plot without 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.boxplot(data=self.df, x='age', ax=ax)
+        ax.set_title('Age Distribution (Box Plot)', fontsize=20)
+        ax.set_xlabel('Age', fontsize=15)
+        st.pyplot(fig)
+
+
+        # Violin plot without 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.violinplot(data=self.df, x='age', ax=ax)
+        ax.set_title('Age Distribution (Violin Plot)', fontsize=20)
+        ax.set_xlabel('Age', fontsize=15)
+        st.pyplot(fig)
+
+
+    # Column 2: Plots with 'genero' hue
+
+        # Histogram with 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.histplot(data=self.df, x='age', hue='genero', kde=False, bins=20, multiple='dodge', ax=ax)
+        ax.set_title('Age Distribution by Genero', fontsize=20)
+        ax.set_xlabel('Age', fontsize=15)
+        ax.set_ylabel('Count', fontsize=15)
+        st.pyplot(fig)
+
+
+        # KDE plot with 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.kdeplot(data=self.df, x='age', hue='genero', ax=ax, fill=True)
+        ax.set_title('Age Distribution (KDE) by Genero', fontsize=20)
+        ax.set_xlabel('Age', fontsize=15)
+        ax.set_ylabel('Density', fontsize=15)
+        st.pyplot(fig)
+
+
+        # Box plot with 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.boxplot(data=self.df, x='genero', y='age', ax=ax)
+        ax.set_title('Age Distribution by Genero (Box Plot)', fontsize=20)
+        ax.set_xlabel('Genero', fontsize=15)
+        ax.set_ylabel('Age', fontsize=15)
+        st.pyplot(fig)
+
+
+        # Violin plot with 'genero'
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.violinplot(data=self.df, x='genero', y='age', ax=ax)
+        ax.set_title('Age Distribution by Genero (Violin Plot)', fontsize=20)
+        ax.set_xlabel('Genero', fontsize=15)
+        ax.set_ylabel('Age', fontsize=15)
+        st.pyplot(fig)
+   
+
+
+        
     def histo_plot(self):
         
         st.markdown(f"<h1 style='font-size:40px;'>{st.session_state['plot']}</h1>", unsafe_allow_html=True)
@@ -375,17 +459,17 @@ class PlotGenerator:
 
         # Set common labels and titles
         
-        g.set_axis_labels('', '', fontsize=30)  # Adjust the labels as needed
-        g.set_titles(col_template='{col_name}', size=20)
+        g.set_axis_labels('', '')  # Adjust the labels as needed
+        g.set_titles(col_template='{col_name}')
         for ax in g.axes.flat:
             ax.set_xticks(self.xtick)
-            ax.set_xticklabels(self.xtick_labels, fontsize=12)
-            ax.tick_params(axis='y', labelsize=12)
+            ax.set_xticklabels(self.xtick_labels)
+            ax.tick_params(axis='y')
 
         plt.tight_layout()
         st.pyplot(g)
+        
 
-    
     def map(self):
         
         layer = pdk.Layer(
