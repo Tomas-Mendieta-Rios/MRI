@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pydeck as pdk
 import plotly.express as px
+import seaborn.objects as so
 st.set_page_config(layout="wide")
 
 data_dictionary = {
@@ -115,7 +116,7 @@ class StreamLit:
 
         st.sidebar.checkbox("All Ages", key='all_ages_checkbox')
         if not st.session_state['all_ages_checkbox']:
-            st.sidebar.slider("Age Range", min_value=int(self.df['age'].min()),max_value=int(self.df['age'].max()),value=(int(self.df_all['age'].min()), int(self.df_all['age'].max())),key='age_range_slider')
+            st.sidebar.slider("Age Range", min_value=int(self.df['age'].min()),max_value=int(self.df['age'].max()),value=(int(self.df['age'].min()), int(self.df['age'].max())),key='age_range_slider')
 
         st.sidebar.checkbox("All Genders",  key='all_genders_checkbox')
         if not st.session_state['all_genders_checkbox']:
@@ -308,7 +309,7 @@ class PlotGenerator:
             self.xtick = [0,1]
             self.xtick_labels = ['0','1']
             self.histo_plot()
-        elif st.session_state['plot'] == "Ubicación":
+        elif st.session_state['plot'] == "Provincia":
             self.map()
 
 
@@ -355,6 +356,9 @@ class PlotGenerator:
 
             plt.tight_layout()
             st.pyplot(fig)
+            
+
+
         
         elif st.session_state['plot_cat'] == "Género":
             
@@ -380,6 +384,21 @@ class PlotGenerator:
             axes[1].tick_params(axis='x', labelsize=30)
             axes[1].tick_params(axis='y', labelsize=30)
             axes[1].set_ylabel('')
+
+            plt.tight_layout()
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(15, 10))
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, discrete=True, bins=len(self.xtick), ax=ax, multiple='dodge')
+
+            # Set labels and title
+            ax.set_title('Distribución por Edad y Género', fontsize=40)
+            ax.set_xlabel('', fontsize=30)
+            ax.set_ylabel('', fontsize=30)
+            ax.set_xticks(self.xtick)
+            ax.set_xticklabels(self.xtick_labels, fontsize=20)
+            ax.tick_params(axis='x', labelsize=20)
+            ax.tick_params(axis='y', labelsize=20)
 
             plt.tight_layout()
             st.pyplot(fig)
@@ -462,6 +481,25 @@ class PlotGenerator:
             plt.tight_layout()
 
             st.pyplot(fig)
+            
+
+            plt.figure(figsize=(10, 6))
+            sns.barplot(data=self.df, x='age_category', y=self.df.groupby(['age_category', 'genero']).size().reset_index(name='count')['count'],
+                        hue='genero', palette='Set1',errorbar=None)
+
+            # Customize the plot
+            plt.xlabel('Categoría de Edad', fontsize=15)
+            plt.ylabel('Total de Usuarios', fontsize=15)
+            plt.title('Distribución por Edad y Género', fontsize=20)
+            plt.legend(title='Género', fontsize=12, title_fontsize=15)
+
+            # Display the plot
+            plt.tight_layout()
+            plt.show()
+                        
+
+
+ 
 
         elif st.session_state['plot_cat'] == "Nada":
             
