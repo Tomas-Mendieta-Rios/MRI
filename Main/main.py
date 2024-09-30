@@ -7,9 +7,73 @@ import pydeck as pdk
 import plotly.express as px
 st.set_page_config(layout="wide")
 
+data_dictionary = {
+    'Fecha de recepción de datos': 'date_recepcion_data',
+    'ID de usuario': 'user_id',
+    'Edad': 'age',
+    'Género': 'genero',
+    'Provincia': 'provincia',
+    'Localidad': 'localidad',
+    'Fecha de generación de recomendación': 'date_generacion_recomendacion',
+    'Seguiste recomendaciones': 'SEGUISTE_RECOMENDACIONES',
+    'Percepción de cambio': 'RECOMENDACIONES_AJUSTE',
+    'Exposición luz natural': 'FOTICO_luz_natural_8_15_integrada',
+    'Exposición luz artificial': 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
+    'Estudios no foticos integrados': 'NOFOTICO_estudios_integrada',
+    'Trabajo no fotico integrado': 'NOFOTICO_trabajo_integrada',
+    'Otra actividad habitual no fotica (sí/no)': 'NOFOTICO_otra_actividad_habitual_si_no',
+    'Cena no fotica integrada': 'NOFOTICO_cena_integrada',
+    'Horario de acostarse (habitual)': 'HAB_Hora_acostar',
+    'Horario decidir dormir (habitual)': 'HAB_Hora_decidir',
+    'Minutos dormir (habitual)': 'HAB_min_dormir',
+    'Hora despertar (habitual)': 'HAB_Soffw',
+    'Alarma no fotica (sí/no)': 'NOFOTICO_HAB_alarma_si_no',
+    'Siesta habitual integrada': 'HAB_siesta_integrada',
+    'Calidad de sueño habitual': 'HAB_calidad',
+    'Horario de acostarse (libre)': 'LIB_Hora_acostar',
+    'Horario decidir dormir (libre)': 'LIB_Hora_decidir',
+    'Minutos dormir (libre)': 'LIB_min_dormir',
+    'Hora despertar (libre)': 'LIB_Offf',
+    'Alarma libre (sí/no)': 'LIB_alarma_si_no',
+    'MEQ Pregunta 1': 'MEQ1',
+    'MEQ Pregunta 2': 'MEQ2',
+    'MEQ Pregunta 3': 'MEQ3',
+    'MEQ Pregunta 4': 'MEQ4',
+    'MEQ Pregunta 5': 'MEQ5',
+    'MEQ Pregunta 6': 'MEQ6',
+    'MEQ Pregunta 7': 'MEQ7',
+    'MEQ Pregunta 8': 'MEQ8',
+    'MEQ Pregunta 9': 'MEQ9',
+    'MEQ Pregunta 10': 'MEQ10',
+    'MEQ Pregunta 11': 'MEQ11',
+    'MEQ Pregunta 12': 'MEQ12',
+    'MEQ Pregunta 13': 'MEQ13',
+    'MEQ Pregunta 14': 'MEQ14',
+    'MEQ Pregunta 15': 'MEQ15',
+    'MEQ Pregunta 16': 'MEQ16',
+    'MEQ Pregunta 17': 'MEQ17',
+    'MEQ Pregunta 18': 'MEQ18',
+    'MEQ Pregunta 19': 'MEQ19',
+    'Recomendación - Alarma no fotica (sí/no)': 'rec_NOFOTICO_HAB_alarma_si_no',
+    'Recomendación - Luz natural (8-15)': 'rec_FOTICO_luz_natural_8_15_integrada',
+    'Recomendación - Luz artificial (8-15)': 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
+    'Recomendación - Estudios no foticos integrados': 'rec_NOFOTICO_estudios_integrada',
+    'Recomendación - Trabajo no fotico integrado': 'rec_NOFOTICO_trabajo_integrada',
+    'Recomendación - Otra actividad habitual no fotica (sí/no)': 'rec_NOFOTICO_otra_actividad_habitual_si_no',
+    'Recomendación - Cena no fotica integrada': 'rec_NOFOTICO_cena_integrada',
+    'Recomendación - Siesta habitual integrada': 'rec_HAB_siesta_integrada',
+    'MEQ Puntaje total': 'MEQ_score_total',
+    'MSFsc': 'MSFsc',
+    'Desviación estándar de sueño (habitual)': 'HAB_SDw',
+    'Desviación de jet lag social': 'SJL',
+    'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
+}
 
-plot_options = { "Distribución localidades": "provincia", "Exposición luz natural": "FOTICO_luz_natural_8_15_integrada", "Exposición luz artificial": 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'}
+keys = list(data_dictionary.keys())
 
+caracteristicas = {'Edad':'age', 'Genero':'genero', 'Ubicación': 'provincia', 'Fecha' : 'date_generacion_recomendacion'}
+recomendaciones = {'Seguiste recomendaciones': 'SEGUISTE_RECOMENDACIONES', 'Percepción de cambio':'RECOMENDACIONES_AJUSTE'}
+exposicion_luz = {'Exposición luz natural':'FOTICO_luz_natural_8_15_integrada','Exposición luz artifical':'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'}
 plot_sleep = {'Horario de acostarse': 'HAB_Hora_acostar', 'Horario decidir dormir':'HAB_Hora_decidir', 'Minutos dormir': 'HAB_min_dormir', 'Hora Despertarse': 'HAB_Soffw'}
 
 class DataLoader: 
@@ -69,50 +133,67 @@ class StreamLit:
         st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100, value=30, key='age_adult_min_slider')
         st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
         
-        st.sidebar.title('Plotting Options')
-        
-        st.sidebar.selectbox("Caracteristicas", list(plot_options.keys()), key='plot')
-        if st.session_state['plot'] != "Distribución localidades":
+        #st.sidebar.title('Gráficos')
+        #st.sidebar.selectbox('Características usuarios', ['Edad', 'Género', 'Provincia', 'Fecha de generación de recomendación'], key='plot')
+        #st.sidebar.selectbox('Recomendaciones', ['Seguiste recomendaciones', 'Percepción de cambio'], key='plot')
+        #st.sidebar.selectbox("Exposición a la luz", ['Exposición luz natural', 'Exposición luz artificial'], key='plot')
+        st.sidebar.selectbox("Sueño", list(data_dictionary.keys()), key='plot')
+        if 'plot' in st.session_state:
              st.sidebar.selectbox("Plotear", options=["Nada","Rango etario", "Género", "Rango Etario y Sexo"], key='plot_cat')
-        st.sidebar.selectbox("Sueño", list(plot_sleep.keys()), key='sueño')
-        
         
         
     def initialize_filters(self):
-        if 'plot' not in st.session_state:
-            st.session_state['plot'] = "Exposición luz natural"
         if 'plot_cat' not in st.session_state:
             st.session_state['plot_cat'] = "Nada"
+
         if 'age_range_slider' not in st.session_state:
             st.session_state['age_range_slider'] = [self.df['age'].min(), self.df['age'].max()]
+
         if 'selected_gender' not in st.session_state:
             st.session_state['selected_gender'] = 'All'
+
         if 'df_selected' not in st.session_state:
             st.session_state['df_selected'] = self.df
+
         if 'recommendations_selectbox' not in st.session_state:
             st.session_state['recommendations_selectbox'] = 'Ambas'
+
         if 'min_days_diff_input' not in st.session_state:
             st.session_state['min_days_diff_input'] = 0
+
         if 'max_days_diff_input' not in st.session_state:
             st.session_state['max_days_diff_input'] = 30
+
         if 'age_joven_min_slider' not in st.session_state:
             st.session_state['age_joven_min_slider'] = 13
+
         if 'age_adult_min_slider' not in st.session_state:
             st.session_state['age_adult_min_slider'] = 60
+
         if 'age_tercera_edad_min_slider' not in st.session_state:
             st.session_state['age_tercera_edad_min_slider'] = 70
+
         if 'antes_despues' not in st.session_state:
             st.session_state['antes_despues'] = 'Ambas'
+
         if 'entradas_usuarios_filter' not in st.session_state:
             st.session_state['entradas_usuarios_filter'] = 'Entradas'
+
         if 'all_dates_checkbox' not in st.session_state:
             st.session_state['all_dates_checkbox'] = True
+
         if 'all_ages_checkbox' not in st.session_state:
             st.session_state['all_ages_checkbox'] = True
+
         if 'all_genders_checkbox' not in st.session_state:
             st.session_state['all_genders_checkbox'] = True
+
         if 'all_recommendations_checkbox' not in st.session_state:
             st.session_state['all_recommendations_checkbox'] = True
+        
+        if 'plot' not in st.session_state:
+            st.session_state['plot'] = 'Exposición luz natural'
+
         
 class Filters:
     def __init__(self,df):
@@ -213,24 +294,26 @@ class Filters:
             
 class PlotGenerator:
     def __init__(self,df):
-        self.df = df  # Store the DataFrame
+        self.df = df
         self.xtick = []
         self.xtick_labels = []
+        
     def choose_plot(self):
-        if 'plot' in st.session_state:
-            if st.session_state['plot'] == 'Exposición luz natural':
-                self.histo_plot()
-                self.xtick = [0,1,2]
-                self.xtick_labels = ['0','1','2']
-            if st.session_state['plot'] == "Distribución localidades":
-                self.map()
-            if st.session_state['plot'] == "Exposición luz artificial":
-                self.histo_plot()
-                self.xtick = [0,1]
-                self.xtick_labels = ['0','1']
-    def histo_plot(self):
-        st.write(f"{st.session_state['plot']}")  # Corrected syntax for f-string
+        
+        if st.session_state['plot'] == 'Exposición luz natural':
+            self.xtick = [0,1,2]
+            self.xtick_labels = ['0','1','2']
+            self.histo_plot()
+        elif st.session_state['plot'] == "Exposición luz artificial":
+            self.xtick = [0,1]
+            self.xtick_labels = ['0','1']
+            self.histo_plot()
+        elif st.session_state['plot'] == "Ubicación":
+            self.map()
 
+
+    def histo_plot(self):
+    
         if st.session_state['plot_cat'] == "Rango etario":
             # Create a figure with 3 subplots (1 row, 3 columns)
             fig, axes = plt.subplots(1, 3, figsize=(30, 10), sharex=False, sharey=False)
@@ -241,7 +324,7 @@ class PlotGenerator:
             tercera_edad = self.df[self.df['age_category'] == 'Tercera Edad']
             
             # Plot for Jóvenes
-            sns.histplot(data=jovenes, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='blue', bins = len(self.xtick),ax=axes[0])
+            sns.histplot(data=jovenes, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', bins = len(self.xtick),ax=axes[0])
             axes[0].set_title('Jóvenes', fontsize=40)
             axes[0].set_xlabel('', fontsize=30)
             axes[0].set_ylabel('', fontsize=30)
@@ -251,7 +334,7 @@ class PlotGenerator:
             axes[0].tick_params(axis='y', labelsize=20)
 
             # Plot for Adultos
-            sns.histplot(data=adultos, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='orange', ax=axes[1])
+            sns.histplot(data=adultos, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='orange', ax=axes[1])
             axes[1].set_title('Adultos', fontsize=40)
             axes[1].set_xlabel('', fontsize=30)
             axes[1].set_ylabel('', fontsize=30)
@@ -261,7 +344,7 @@ class PlotGenerator:
             axes[1].tick_params(axis='y', labelsize=20)
 
             # Plot for Tercera Edad
-            sns.histplot(data=tercera_edad, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='green', ax=axes[2])
+            sns.histplot(data=tercera_edad, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='green', ax=axes[2])
             axes[2].set_title('Tercera Edad', fontsize=40)
             axes[2].set_xlabel('', fontsize=30)
             axes[2].set_ylabel('', fontsize=30)
@@ -280,7 +363,7 @@ class PlotGenerator:
             masculinos = self.df[self.df['genero'] == 1]
             femeninos = self.df[self.df['genero'] == 0]
 
-            sns.histplot(data=masculinos, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[0])
+            sns.histplot(data=masculinos, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', ax=axes[0])
             axes[0].set_title('Masculinos', fontsize=40)
             axes[0].set_xticks(self.xtick)  # Use predefined category positions
             axes[0].set_xticklabels(self.xtick_labels, fontsize=30)  # Use predefined category names
@@ -289,7 +372,7 @@ class PlotGenerator:
             axes[0].tick_params(axis='y', labelsize=30)
             axes[0].set_ylabel('')
 
-            sns.histplot(data=femeninos, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[1])
+            sns.histplot(data=femeninos, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='pink', ax=axes[1])
             axes[1].set_title('Femeninos', fontsize=40)
             axes[1].set_xticks(self.xtick)  # Use predefined category positions
             axes[1].set_xticklabels(self.xtick_labels, fontsize=30)  # Use predefined category names
@@ -317,7 +400,7 @@ class PlotGenerator:
 
 
             # Plot for Jóvenes Masculinos
-            sns.histplot(data=jovenes_m, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[0, 0])
+            sns.histplot(data=jovenes_m, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', ax=axes[0, 0])
             axes[0, 0].set_title('Jóvenes Masculinos', fontsize=40)
             axes[0, 0].set_xticks(self.xtick)
             axes[0, 0].set_xticklabels(self.xtick_labels, fontsize=30)
@@ -327,7 +410,7 @@ class PlotGenerator:
             axes[0, 0].set_ylabel('', fontsize=30)
 
             # Plot for Jóvenes Femeninos
-            sns.histplot(data=jovenes_f, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[0, 1])
+            sns.histplot(data=jovenes_f, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[0, 1])
             axes[0, 1].set_title('Jóvenes Femeninos', fontsize=40)
             axes[0, 1].set_xticks(self.xtick)
             axes[0, 1].set_xticklabels(self.xtick_labels, fontsize=30)
@@ -338,7 +421,7 @@ class PlotGenerator:
             axes[0, 1].set_ylabel('', fontsize=30)
 
             # Plot for Adultos Masculinos
-            sns.histplot(data=adultos_m, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[1, 0])
+            sns.histplot(data=adultos_m, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', ax=axes[1, 0])
             axes[1, 0].set_title('Adultos Masculinos', fontsize=40)
             axes[1, 0].set_xticks(self.xtick)
             axes[1, 0].set_xticklabels(self.xtick_labels, fontsize=30)
@@ -348,7 +431,7 @@ class PlotGenerator:
             axes[1, 0].set_ylabel('', fontsize=30)
 
             # Plot for Adultos Femeninos
-            sns.histplot(data=adultos_f, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[1, 1])
+            sns.histplot(data=adultos_f, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[1, 1])
             axes[1, 1].set_title('Adultos Femeninos', fontsize=40)
             axes[1, 1].set_xticks(self.xtick)
             axes[1, 1].set_xticklabels(self.xtick_labels, fontsize=30)
@@ -358,7 +441,7 @@ class PlotGenerator:
             axes[1, 1].set_ylabel('', fontsize=30)
 
             # Plot for Tercera Edad Masculinos
-            sns.histplot(data=tercera_edad_m, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[2, 0])
+            sns.histplot(data=tercera_edad_m, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[2, 0])
             axes[2, 0].set_title('Tercera Edad Masculinos', fontsize=40)
             axes[2, 0].set_xticks(self.xtick)
             axes[2, 0].set_xticklabels(self.xtick_labels, fontsize=30)
@@ -368,7 +451,7 @@ class PlotGenerator:
             axes[2, 0].set_ylabel('', fontsize=30)
 
             # Plot for Tercera Edad Femeninos
-            sns.histplot(data=tercera_edad_f, x=plot_options[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[2, 1])
+            sns.histplot(data=tercera_edad_f, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='pink', ax=axes[2, 1])
             axes[2, 1].set_title('Tercera Edad Femeninos', fontsize=40)
             axes[2, 1].set_xticks(self.xtick)
             axes[2, 1].set_xticklabels(self.xtick_labels, fontsize=30)
@@ -381,14 +464,12 @@ class PlotGenerator:
             st.pyplot(fig)
 
         elif st.session_state['plot_cat'] == "Nada":
-            # Create a figure and axis
+            
             fig, ax = plt.subplots(figsize=(8, 6))
             
-            # Plot without the hue for age_category
-            sns.histplot(data=self.df, x=plot_options[st.session_state['plot']], kde=False, discrete=True, ax=ax)
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, ax=ax)
             
-            # Set the title and labels
-            ax.set_title(st.session_state['plot'])
+          
             ax.set_xlabel('')
             ax.set_ylabel('')
             ax.set_xticks(self.xtick)
@@ -454,6 +535,7 @@ def main():
 main()
 
 # streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main.py'
+
 
 
 
