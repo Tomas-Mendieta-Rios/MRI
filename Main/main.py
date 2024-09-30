@@ -357,51 +357,81 @@ class PlotGenerator:
             plt.tight_layout()
             st.pyplot(fig)
             
-
-
-        
         elif st.session_state['plot_cat'] == "Género":
             
-            fig, axes = plt.subplots(1, 2, figsize=(30, 15), sharex=False, sharey=False)
+            fig, ax = plt.subplots(figsize=(8, 6))
             
-            masculinos = self.df[self.df['genero'] == 1]
-            femeninos = self.df[self.df['genero'] == 0]
-
-            sns.histplot(data=masculinos, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', ax=axes[0])
-            axes[0].set_title('Masculinos', fontsize=40)
-            axes[0].set_xticks(self.xtick)  # Use predefined category positions
-            axes[0].set_xticklabels(self.xtick_labels, fontsize=30)  # Use predefined category names
-            axes[0].set_xlabel('', fontsize=30)
-            axes[0].tick_params(axis='x', labelsize=30)
-            axes[0].tick_params(axis='y', labelsize=30)
-            axes[0].set_ylabel('')
-
-            sns.histplot(data=femeninos, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='pink', ax=axes[1])
-            axes[1].set_title('Femeninos', fontsize=40)
-            axes[1].set_xticks(self.xtick)  # Use predefined category positions
-            axes[1].set_xticklabels(self.xtick_labels, fontsize=30)  # Use predefined category names
-            axes[1].set_xlabel('', fontsize=30)
-            axes[1].tick_params(axis='x', labelsize=30)
-            axes[1].tick_params(axis='y', labelsize=30)
-            axes[1].set_ylabel('')
-
-            plt.tight_layout()
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, ax=ax)
+            
+          
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+            ax.set_xticks(self.xtick)
+            
             st.pyplot(fig)
-            
             fig, ax = plt.subplots(figsize=(15, 10))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, discrete=True, bins=len(self.xtick), ax=ax, multiple='dodge')
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, discrete=True, bins=len(self.xtick),shrink=0.8,  ax=ax, multiple='dodge')
 
             # Set labels and title
-            ax.set_title('Distribución por Edad y Género', fontsize=40)
+            ax.set_title(st.session_state['plot'], fontsize=40)
             ax.set_xlabel('', fontsize=30)
             ax.set_ylabel('', fontsize=30)
             ax.set_xticks(self.xtick)
             ax.set_xticklabels(self.xtick_labels, fontsize=20)
             ax.tick_params(axis='x', labelsize=20)
             ax.tick_params(axis='y', labelsize=20)
-
             plt.tight_layout()
             st.pyplot(fig)
+
+
+            g = sns.FacetGrid(
+                self.df,
+                row='age_category',  # Separate rows for each age category
+                col='genero',        # Separate columns for each gender
+                height=6,
+                aspect=1.5,
+                palette='husl',
+                margin_titles=True
+            )
+
+            # Plot the histograms for each subplot (both age_category and genero)
+            g.map(
+                sns.histplot,
+                data_dictionary[st.session_state['plot']],
+                discrete=True,
+                bins=len(self.xtick),
+                shrink=0.8
+            )
+
+            # Set labels and titles
+            g.fig.suptitle(st.session_state['plot'], fontsize=40, y=1.03)
+            g.set_axis_labels('Exposure Level', 'Count', fontsize=20)
+            g.set_titles(row_template='Age Category: {row_name}', col_template='Genero: {col_name}', size=20)
+
+            # Set the tick labels for the x and y axis
+            g.set(xticks=self.xtick)
+            g.set_xticklabels(self.xtick_labels, fontsize=15)
+            g.set_yticklabels(fontsize=15)
+            for ax in g.axes.flat:
+                ax.tick_params(axis='y', which='major', labelsize=15)  # Set tick label size for better visibility
+                for p in ax.patches:  # Optional: Show values on top of bars (if needed)
+                    ax.annotate(
+                        f'{p.get_height():.0f}',
+                        (p.get_x() + p.get_width() / 2., p.get_height()),
+                        ha='center', va='center',
+                        xytext=(0, 9), textcoords='offset points', fontsize=12
+        )
+
+
+            # Adjust the layout to prevent overlap
+            plt.subplots_adjust(top=0.9)
+
+            # Render the plot in Streamlit
+            st.pyplot(g)
+                    
+
+
+            
             
         elif st.session_state['plot_cat'] == "Rango Etario y Sexo":
             
@@ -481,26 +511,34 @@ class PlotGenerator:
             plt.tight_layout()
 
             st.pyplot(fig)
-            
+            g = sns.FacetGrid(
+                self.df,
+                row='age_category',  # Separate rows for each age category
+                col='genero',        # Separate columns for each gender
+                height=6,
+                aspect=1.5,
+                palette='husl',
+                margin_titles=True
+            )
 
-            plt.figure(figsize=(10, 6))
-            sns.barplot(data=self.df, x='age_category', y=self.df.groupby(['age_category', 'genero']).size().reset_index(name='count')['count'],
-                        hue='genero', palette='Set1',errorbar=None)
+            g.map(
+                sns.histplot,
+                data_dictionary[st.session_state['plot']],
+                discrete=True,
+                bins=len(self.xtick),
+                shrink=0.8
+            )
 
-            # Customize the plot
-            plt.xlabel('Categoría de Edad', fontsize=15)
-            plt.ylabel('Total de Usuarios', fontsize=15)
-            plt.title('Distribución por Edad y Género', fontsize=20)
-            plt.legend(title='Género', fontsize=12, title_fontsize=15)
+            # Set labels and titles
+            g.fig.suptitle(st.session_state['plot'], fontsize=40, y=1.03)
+            g.set_axis_labels('', 'Count', fontsize=20)
+            g.set_titles(row_template='Age Category: {row_name}', col_template='Genero: {col_name}', fontsize=20)
+            g.set(xticks=self.xtick)
+            g.set_xticklabels(self.xtick_labels, fontsize=15)
+            g.set_yticklabels(fontsize=15)
 
-            # Display the plot
             plt.tight_layout()
-            plt.show()
-                        
-
-
- 
-
+            st.pyplot(g)
         elif st.session_state['plot_cat'] == "Nada":
             
             fig, ax = plt.subplots(figsize=(8, 6))
