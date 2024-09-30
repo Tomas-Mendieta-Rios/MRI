@@ -131,22 +131,22 @@ class StreamLit:
 
         st.sidebar.subheader("Define Age Categories")
         st.sidebar.slider("Min Age for Jóvenes", min_value=0, max_value=100,  key='age_joven_min_slider')
-        st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100, value=30, key='age_adult_min_slider')
-        st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100, value=60, key='age_tercera_edad_min_slider')
+        st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100,  key='age_adult_min_slider')
+        st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min_slider')
         
         #st.sidebar.title('Gráficos')
         #st.sidebar.selectbox('Características usuarios', ['Edad', 'Género', 'Provincia', 'Fecha de generación de recomendación'], key='plot')
         #st.sidebar.selectbox('Recomendaciones', ['Seguiste recomendaciones', 'Percepción de cambio'], key='plot')
         #st.sidebar.selectbox("Exposición a la luz", ['Exposición luz natural', 'Exposición luz artificial'], key='plot')
         st.sidebar.selectbox("Sueño", list(data_dictionary.keys()), key='plot')
-        if 'plot' in st.session_state:
-             st.sidebar.selectbox("Plotear", options=["Nada","Rango etario", "Género", "Rango Etario y Sexo"], key='plot_cat')
-        
+        st.sidebar.checkbox("Mostrar datos", key='datos')
+       
         
     def initialize_filters(self):
-        if 'plot_cat' not in st.session_state:
-            st.session_state['plot_cat'] = "Nada"
-
+        
+        if 'datos' not in st.session_state:
+            st.session_state['datos'] = True
+            
         if 'age_range_slider' not in st.session_state:
             st.session_state['age_range_slider'] = [self.df['age'].min(), self.df['age'].max()]
 
@@ -169,7 +169,7 @@ class StreamLit:
             st.session_state['age_joven_min_slider'] = 13
 
         if 'age_adult_min_slider' not in st.session_state:
-            st.session_state['age_adult_min_slider'] = 60
+            st.session_state['age_adult_min_slider'] = 40
 
         if 'age_tercera_edad_min_slider' not in st.session_state:
             st.session_state['age_tercera_edad_min_slider'] = 70
@@ -268,6 +268,7 @@ class Filters:
             else:
                 return 'Tercera Edad'
         self.result['age_category'] = self.result['age'].apply(age_category)
+
         
     def choose_filter(self):
         
@@ -314,242 +315,76 @@ class PlotGenerator:
 
 
     def histo_plot(self):
-    
-        if st.session_state['plot_cat'] == "Rango etario":
-            # Create a figure with 3 subplots (1 row, 3 columns)
-            fig, axes = plt.subplots(1, 3, figsize=(30, 10), sharex=False, sharey=False)
-            
-            # Filter data by age category
-            jovenes = self.df[self.df['age_category'] == 'Jóvenes']
-            adultos = self.df[self.df['age_category'] == 'Adultos']
-            tercera_edad = self.df[self.df['age_category'] == 'Tercera Edad']
-            
-            # Plot for Jóvenes
-            sns.histplot(data=jovenes, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', bins = len(self.xtick),ax=axes[0])
-            axes[0].set_title('Jóvenes', fontsize=40)
-            axes[0].set_xlabel('', fontsize=30)
-            axes[0].set_ylabel('', fontsize=30)
-            axes[0].set_xticks(self.xtick)
-            axes[0].set_xticklabels(self.xtick_labels, fontsize=20)
-            axes[0].tick_params(axis='x', labelsize=20)
-            axes[0].tick_params(axis='y', labelsize=20)
+        
+        st.markdown(f"<h1 style='font-size:40px;'>{st.session_state['plot']}</h1>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            fig1, ax1 = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, ax=ax1)
+            ax1.set_xlabel('')
+            ax1.set_ylabel('')
+            ax1.set_xticks(self.xtick)
+            st.pyplot(fig1)
 
-            # Plot for Adultos
-            sns.histplot(data=adultos, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='orange', ax=axes[1])
-            axes[1].set_title('Adultos', fontsize=40)
-            axes[1].set_xlabel('', fontsize=30)
-            axes[1].set_ylabel('', fontsize=30)
-            axes[1].set_xticks(self.xtick)
-            axes[1].set_xticklabels(self.xtick_labels, fontsize=20)
-            axes[1].tick_params(axis='x', labelsize=20)
-            axes[1].tick_params(axis='y', labelsize=20)
-
-            # Plot for Tercera Edad
-            sns.histplot(data=tercera_edad, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='green', ax=axes[2])
-            axes[2].set_title('Tercera Edad', fontsize=40)
-            axes[2].set_xlabel('', fontsize=30)
-            axes[2].set_ylabel('', fontsize=30)
-            axes[2].set_xticks(self.xtick)
-            axes[2].set_xticklabels(self.xtick_labels, fontsize=20)
-            axes[2].tick_params(axis='x', labelsize=20)
-            axes[2].tick_params(axis='y', labelsize=20)
-
-            plt.tight_layout()
-            st.pyplot(fig)
-            
-        elif st.session_state['plot_cat'] == "Género":
-            
-            fig, ax = plt.subplots(figsize=(8, 6))
-            
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, ax=ax)
-            
-          
-            ax.set_xlabel('')
-            ax.set_ylabel('')
-            ax.set_xticks(self.xtick)
-            
-            st.pyplot(fig)
-            fig, ax = plt.subplots(figsize=(15, 10))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, discrete=True, bins=len(self.xtick),shrink=0.8,  ax=ax, multiple='dodge')
-
-            # Set labels and title
-            ax.set_title(st.session_state['plot'], fontsize=40)
-            ax.set_xlabel('', fontsize=30)
-            ax.set_ylabel('', fontsize=30)
-            ax.set_xticks(self.xtick)
-            ax.set_xticklabels(self.xtick_labels, fontsize=20)
-            ax.tick_params(axis='x', labelsize=20)
-            ax.tick_params(axis='y', labelsize=20)
-            plt.tight_layout()
-            st.pyplot(fig)
-
-
-            g = sns.FacetGrid(
-                self.df,
-                row='age_category',  # Separate rows for each age category
-                col='genero',        # Separate columns for each gender
-                height=6,
-                aspect=1.5,
-                palette='husl',
-                margin_titles=True
-            )
-
-            # Plot the histograms for each subplot (both age_category and genero)
-            g.map(
-                sns.histplot,
-                data_dictionary[st.session_state['plot']],
+        # Plot 2 - Histogram with hue for 'genero'
+        with col2:
+            fig2, ax2 = plt.subplots(figsize=(8, 6))
+            sns.histplot(
+                data=self.df,
+                x=data_dictionary[st.session_state['plot']],
+                hue='genero',
+                kde=False,
                 discrete=True,
                 bins=len(self.xtick),
-                shrink=0.8
+                shrink=0.8,
+                ax=ax2,
+                multiple='dodge'
             )
+            ax2.set_title('')
+            ax2.set_xlabel('')
+            ax2.set_ylabel('')
+            ax2.set_xticks(self.xtick)
+            ax2.set_xticklabels(self.xtick_labels)
+            ax2.tick_params(axis='x')
+            ax2.tick_params(axis='y')
+            plt.tight_layout()
+            st.pyplot(fig2)
 
-            # Set labels and titles
-            g.fig.suptitle(st.session_state['plot'], fontsize=40, y=1.03)
-            g.set_axis_labels('Exposure Level', 'Count', fontsize=20)
-            g.set_titles(row_template='Age Category: {row_name}', col_template='Genero: {col_name}', size=20)
-
-            # Set the tick labels for the x and y axis
-            g.set(xticks=self.xtick)
-            g.set_xticklabels(self.xtick_labels, fontsize=15)
-            g.set_yticklabels(fontsize=15)
-            for ax in g.axes.flat:
-                ax.tick_params(axis='y', which='major', labelsize=15)  # Set tick label size for better visibility
-                for p in ax.patches:  # Optional: Show values on top of bars (if needed)
-                    ax.annotate(
-                        f'{p.get_height():.0f}',
-                        (p.get_x() + p.get_width() / 2., p.get_height()),
-                        ha='center', va='center',
-                        xytext=(0, 9), textcoords='offset points', fontsize=12
+     
+        
+        g = sns.FacetGrid(
+        self.df,
+        col="age_category",  # Separate columns for each age category
+        height=5,
+        aspect=1.2,
+        margin_titles=True
         )
 
+        # Use map_dataframe to plot histograms, with 'genero' as the hue and count on y-axis
+        g.map_dataframe(
+            sns.histplot,
+            x=data_dictionary[st.session_state['plot']],
+            hue="genero",
+            multiple="dodge",
+            shrink=0.8,
+            discrete=True
+        )
 
-            # Adjust the layout to prevent overlap
-            plt.subplots_adjust(top=0.9)
+        # Add a legend to differentiate the genders
+        g.add_legend()
 
-            # Render the plot in Streamlit
-            st.pyplot(g)
-                    
-
-
-            
-            
-        elif st.session_state['plot_cat'] == "Rango Etario y Sexo":
-            
-            fig, axes = plt.subplots(3, 2, figsize=(30, 15), sharex=False, sharey=False)
-
-            # Filter data by age category and gender
-            jovenes_m = self.df[(self.df['age_category'] == 'Jóvenes') & (self.df['genero'] == 1)]
-            jovenes_f = self.df[(self.df['age_category'] == 'Jóvenes') & (self.df['genero'] == 0)]
-            
-            adultos_m = self.df[(self.df['age_category'] == 'Adultos') & (self.df['genero'] == 1)]
-            adultos_f = self.df[(self.df['age_category'] == 'Adultos') & (self.df['genero'] == 0)]
-            
-            tercera_edad_m = self.df[(self.df['age_category'] == 'Tercera Edad') & (self.df['genero'] == 1)]
-            tercera_edad_f = self.df[(self.df['age_category'] == 'Tercera Edad') & (self.df['genero'] == 0)]
-
-
-            # Plot for Jóvenes Masculinos
-            sns.histplot(data=jovenes_m, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', ax=axes[0, 0])
-            axes[0, 0].set_title('Jóvenes Masculinos', fontsize=40)
-            axes[0, 0].set_xticks(self.xtick)
-            axes[0, 0].set_xticklabels(self.xtick_labels, fontsize=30)
-            axes[0, 0].tick_params(axis='x', labelsize=30)
-            axes[0, 0].tick_params(axis='y', labelsize=30)
-            axes[0, 0].set_xlabel('')
-            axes[0, 0].set_ylabel('', fontsize=30)
-
-            # Plot for Jóvenes Femeninos
-            sns.histplot(data=jovenes_f, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[0, 1])
-            axes[0, 1].set_title('Jóvenes Femeninos', fontsize=40)
-            axes[0, 1].set_xticks(self.xtick)
-            axes[0, 1].set_xticklabels(self.xtick_labels, fontsize=30)
-            axes[0, 1].tick_params(axis='x', labelsize=30)
-            axes[0, 1].tick_params(axis='y', labelsize=30)
-            axes[0, 1].set_xlabel('')
-            axes[0, 1].set_xlabel('')
-            axes[0, 1].set_ylabel('', fontsize=30)
-
-            # Plot for Adultos Masculinos
-            sns.histplot(data=adultos_m, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='blue', ax=axes[1, 0])
-            axes[1, 0].set_title('Adultos Masculinos', fontsize=40)
-            axes[1, 0].set_xticks(self.xtick)
-            axes[1, 0].set_xticklabels(self.xtick_labels, fontsize=30)
-            axes[1, 0].tick_params(axis='x', labelsize=30)
-            axes[1, 0].tick_params(axis='y', labelsize=30)
-            axes[1, 0].set_xlabel('')
-            axes[1, 0].set_ylabel('', fontsize=30)
-
-            # Plot for Adultos Femeninos
-            sns.histplot(data=adultos_f, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='pink', ax=axes[1, 1])
-            axes[1, 1].set_title('Adultos Femeninos', fontsize=40)
-            axes[1, 1].set_xticks(self.xtick)
-            axes[1, 1].set_xticklabels(self.xtick_labels, fontsize=30)
-            axes[1, 1].tick_params(axis='x', labelsize=30)
-            axes[1, 1].tick_params(axis='y', labelsize=30)
-            axes[1, 1].set_xlabel('')
-            axes[1, 1].set_ylabel('', fontsize=30)
-
-            # Plot for Tercera Edad Masculinos
-            sns.histplot(data=tercera_edad_m, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, color='blue', ax=axes[2, 0])
-            axes[2, 0].set_title('Tercera Edad Masculinos', fontsize=40)
-            axes[2, 0].set_xticks(self.xtick)
-            axes[2, 0].set_xticklabels(self.xtick_labels, fontsize=30)
-            axes[2, 0].tick_params(axis='x', labelsize=30)
-            axes[2, 0].tick_params(axis='y', labelsize=30)
-            axes[2, 0].set_xlabel('', fontsize=30)
-            axes[2, 0].set_ylabel('', fontsize=30)
-
-            # Plot for Tercera Edad Femeninos
-            sns.histplot(data=tercera_edad_f, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, color='pink', ax=axes[2, 1])
-            axes[2, 1].set_title('Tercera Edad Femeninos', fontsize=40)
-            axes[2, 1].set_xticks(self.xtick)
-            axes[2, 1].set_xticklabels(self.xtick_labels, fontsize=30)
-            axes[2, 1].tick_params(axis='x', labelsize=30)
-            axes[2, 1].tick_params(axis='y', labelsize=30)
-            axes[2, 1].set_xlabel('', fontsize=30)
-
-            plt.tight_layout()
-
-            st.pyplot(fig)
-            g = sns.FacetGrid(
-                self.df,
-                row='age_category',  # Separate rows for each age category
-                col='genero',        # Separate columns for each gender
-                height=6,
-                aspect=1.5,
-                palette='husl',
-                margin_titles=True
-            )
-
-            g.map(
-                sns.histplot,
-                data_dictionary[st.session_state['plot']],
-                discrete=True,
-                bins=len(self.xtick),
-                shrink=0.8
-            )
-
-            # Set labels and titles
-            g.fig.suptitle(st.session_state['plot'], fontsize=40, y=1.03)
-            g.set_axis_labels('', 'Count', fontsize=20)
-            g.set_titles(row_template='Age Category: {row_name}', col_template='Genero: {col_name}', fontsize=20)
-            g.set(xticks=self.xtick)
-            g.set_xticklabels(self.xtick_labels, fontsize=15)
-            g.set_yticklabels(fontsize=15)
-
-            plt.tight_layout()
-            st.pyplot(g)
-        elif st.session_state['plot_cat'] == "Nada":
-            
-            fig, ax = plt.subplots(figsize=(8, 6))
-            
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']] , kde=False, discrete=True, ax=ax)
-            
-          
-            ax.set_xlabel('')
-            ax.set_ylabel('')
+        # Set common labels and titles
+        
+        g.set_axis_labels('', '', fontsize=30)  # Adjust the labels as needed
+        g.set_titles(col_template='{col_name}', size=20)
+        for ax in g.axes.flat:
             ax.set_xticks(self.xtick)
-            st.pyplot(fig)
+            ax.set_xticklabels(self.xtick_labels, fontsize=12)
+            ax.tick_params(axis='y', labelsize=12)
+
+        plt.tight_layout()
+        st.pyplot(g)
+
     
     def map(self):
         
@@ -596,14 +431,14 @@ def main():
    
     df_all = df_all[column_order_df_all]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-
-    st.write('df_all')
-    st.write(f'Cantidad de usuarios: {len(df_all)}')  
-    st.write(df_all)
-    
-    st.write('Data filtrada')
-    st.write(f'Cantidad de usuarios: {len(df_filtered)}')  
-    st.write(df_filtered)
+    if  st.session_state['datos'] == False:  
+        st.write('df_all')
+        st.write(f'Cantidad de usuarios: {len(df_all)}')  
+        st.write(df_all)
+        
+        st.write('Data filtrada')
+        st.write(f'Cantidad de usuarios: {len(df_filtered)}')  
+        st.write(df_filtered)
 
     plot_generator = PlotGenerator(df_filtered)
     plot_generator.choose_plot()
