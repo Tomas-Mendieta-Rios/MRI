@@ -324,77 +324,79 @@ class PlotGenerator:
             self.map()
 
     def gauss(self):
+        # Create two columns
+        col1, col2 = st.columns(2)
 
-        # Histogram without 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.histplot(data=self.df, x='age', kde=False, bins=20, ax=ax)
-        ax.set_title('Age Distribution', fontsize=20)
-        ax.set_xlabel('Age', fontsize=15)
-        ax.set_ylabel('Count', fontsize=15)
-        st.pyplot(fig)
+        # Column without 'genero'
+        with col1:
+            st.markdown("### Without 'Genero'")
 
-        # KDE plot without 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.kdeplot(data=self.df, x='age', ax=ax, fill=True)
-        ax.set_title('Age Distribution (KDE)', fontsize=20)
-        ax.set_xlabel('Age', fontsize=15)
-        ax.set_ylabel('Density', fontsize=15)
-        st.pyplot(fig)
+            # Histogram without 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df, x='age', kde=False, bins=20, ax=ax, color='skyblue')
+            ax.set_title('Age Distribution', fontsize=20)
+            ax.set_xlabel('Age', fontsize=15)
+            ax.set_ylabel('Count', fontsize=15)
+            st.pyplot(fig)
 
+            # KDE plot without 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.kdeplot(data=self.df, x='age', ax=ax, fill=True, color='skyblue')
+            ax.set_title('Age Distribution (KDE)', fontsize=20)
+            ax.set_xlabel('Age', fontsize=15)
+            ax.set_ylabel('Density', fontsize=15)
+            st.pyplot(fig)
 
-        # Box plot without 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.boxplot(data=self.df, x='age', ax=ax)
-        ax.set_title('Age Distribution (Box Plot)', fontsize=20)
-        ax.set_xlabel('Age', fontsize=15)
-        st.pyplot(fig)
+            # Box plot without 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.boxplot(data=self.df, x='age', ax=ax, color='skyblue')
+            ax.set_title('Age Distribution (Box Plot)', fontsize=20)
+            ax.set_xlabel('Age', fontsize=15)
+            st.pyplot(fig)
 
+            # Violin plot without 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.violinplot(data=self.df, x='age', ax=ax, color='skyblue')
+            ax.set_title('Age Distribution (Violin Plot)', fontsize=20)
+            ax.set_xlabel('Age', fontsize=15)
+            st.pyplot(fig)
 
-        # Violin plot without 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.violinplot(data=self.df, x='age', ax=ax)
-        ax.set_title('Age Distribution (Violin Plot)', fontsize=20)
-        ax.set_xlabel('Age', fontsize=15)
-        st.pyplot(fig)
+        # Column with 'genero'
+        with col2:
+            st.markdown("### With 'Genero'")
 
+            # Histogram with 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df, x='age', hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='Set2')
+            ax.set_title('Age Distribution by Genero', fontsize=20)
+            ax.set_xlabel('Age', fontsize=15)
+            ax.set_ylabel('Count', fontsize=15)
+            st.pyplot(fig)
 
-    # Column 2: Plots with 'genero' hue
+            # KDE plot with 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.kdeplot(data=self.df, x='age', hue='genero', ax=ax, fill=True, palette='Set2')
+            ax.set_title('Age Distribution (KDE) by Genero', fontsize=20)
+            ax.set_xlabel('Age', fontsize=15)
+            ax.set_ylabel('Density', fontsize=15)
+            st.pyplot(fig)
 
-        # Histogram with 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.histplot(data=self.df, x='age', hue='genero', kde=False, bins=20, multiple='dodge', ax=ax)
-        ax.set_title('Age Distribution by Genero', fontsize=20)
-        ax.set_xlabel('Age', fontsize=15)
-        ax.set_ylabel('Count', fontsize=15)
-        st.pyplot(fig)
+            # Box plot with 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.boxplot(data=self.df, x='genero', y='age', ax=ax, palette='Set2')
+            ax.set_title('Age Distribution by Genero (Box Plot)', fontsize=20)
+            ax.set_xlabel('Genero', fontsize=15)
+            ax.set_ylabel('Age', fontsize=15)
+            st.pyplot(fig)
 
+            # Violin plot with 'genero'
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.violinplot(data=self.df, x='genero', y='age', ax=ax, palette='Set2')
+            ax.set_title('Age Distribution by Genero (Violin Plot)', fontsize=20)
+            ax.set_xlabel('Genero', fontsize=15)
+            ax.set_ylabel('Age', fontsize=15)
+            st.pyplot(fig)
 
-        # KDE plot with 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.kdeplot(data=self.df, x='age', hue='genero', ax=ax, fill=True)
-        ax.set_title('Age Distribution (KDE) by Genero', fontsize=20)
-        ax.set_xlabel('Age', fontsize=15)
-        ax.set_ylabel('Density', fontsize=15)
-        st.pyplot(fig)
-
-
-        # Box plot with 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.boxplot(data=self.df, x='genero', y='age', ax=ax)
-        ax.set_title('Age Distribution by Genero (Box Plot)', fontsize=20)
-        ax.set_xlabel('Genero', fontsize=15)
-        ax.set_ylabel('Age', fontsize=15)
-        st.pyplot(fig)
-
-
-        # Violin plot with 'genero'
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.violinplot(data=self.df, x='genero', y='age', ax=ax)
-        ax.set_title('Age Distribution by Genero (Violin Plot)', fontsize=20)
-        ax.set_xlabel('Genero', fontsize=15)
-        ax.set_ylabel('Age', fontsize=15)
-        st.pyplot(fig)
-   
 
 
         
