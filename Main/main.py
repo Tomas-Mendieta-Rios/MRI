@@ -10,12 +10,9 @@ st.set_page_config(layout="wide")
 
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
-    'ID de usuario': 'user_id',
     'Edad': 'age',
     'Género': 'genero',
     'Provincia': 'provincia',
-    'Localidad': 'localidad',
-    'Fecha de generación de recomendación': 'date_generacion_recomendacion',
     'Seguiste recomendaciones': 'SEGUISTE_RECOMENDACIONES',
     'Percepción de cambio': 'RECOMENDACIONES_AJUSTE',
     'Exposición luz natural': 'FOTICO_luz_natural_8_15_integrada',
@@ -24,7 +21,7 @@ data_dictionary = {
     'Trabajo no fotico integrado': 'NOFOTICO_trabajo_integrada',
     'Otra actividad habitual no fotica': 'NOFOTICO_otra_actividad_habitual_si_no',
     'Cena no fotica integrada': 'NOFOTICO_cena_integrada',
-    'Horario de acostarse (habitual)': 'HAB_Hora_acostar',
+    'Horario de acostarse - habiles': 'HAB_Hora_acostar',
     'Horario decidir dormir (habitual)': 'HAB_Hora_decidir',
     'Minutos dormir (habitual)': 'HAB_min_dormir',
     'Hora despertar (habitual)': 'HAB_Soffw',
@@ -216,16 +213,18 @@ class Filters:
     def genders(self):
         self.result = self.result[self.result['genero'] == st.session_state['gender_selectbox']]
         
-    def recomendations(self): 
+    def recomendations(self):
         days_min = st.session_state['min_days_diff_input']
         days_max = st.session_state['max_days_diff_input']
         rec_filter = st.session_state['recommendations_selectbox']
-        when_filter = st.session_state['ambas_antes_despues']  
-        
+        when_filter = st.session_state['ambas_antes_despues']
+
         self.result = self.result.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
         self.result = self.result.reset_index(drop=True)
         final_indices = []
-        for idx in range(1, len(self.result)):  
+        antes_despues_labels = []
+
+        for idx in range(1, len(self.result)):
             if self.result.loc[idx - 1, 'user_id'] == self.result.loc[idx, 'user_id']:
                 if rec_filter == 'Ambas':
                     if self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
@@ -233,31 +232,49 @@ class Filters:
                             if when_filter == 'Ambas':
                                 final_indices.append(idx - 1)
                                 final_indices.append(idx)
+                                antes_despues_labels.append('Antes')
+                                antes_despues_labels.append('Después')
                             elif when_filter == 'Antes':
                                 final_indices.append(idx - 1)
+                                antes_despues_labels.append('Antes')
                             elif when_filter == 'Después':
                                 final_indices.append(idx)
+                                antes_despues_labels.append('Después')
 
                 elif rec_filter == 'Si' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
                     if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
+                            antes_despues_labels.append('Antes')
+                            antes_despues_labels.append('Después')
                         elif when_filter == 'Antes':
                             final_indices.append(idx - 1)
+                            antes_despues_labels.append('Antes')
                         elif when_filter == 'Después':
                             final_indices.append(idx)
+                            antes_despues_labels.append('Después')
 
                 elif rec_filter == 'No' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
                     if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
+                            antes_despues_labels.append('Antes')
+                            antes_despues_labels.append('Después')
                         elif when_filter == 'Antes':
                             final_indices.append(idx - 1)
+                            antes_despues_labels.append('Antes')
                         elif when_filter == 'Después':
                             final_indices.append(idx)
+                            antes_despues_labels.append('Después')
+
+        # Create the filtered dataframe
         self.result = self.result.loc[final_indices].reset_index(drop=True)
+
+        # Add the "Antes_Después" column for all cases
+        self.result['Antes_Después'] = antes_despues_labels
+
     
     def categorize_age(self):
         def age_category(age):
@@ -267,9 +284,9 @@ class Filters:
                 return 'Adultos'
             else:
                 return 'Tercera Edad'
+        
         self.result['age_category'] = self.result['age'].apply(age_category)
 
-        
     def choose_filter(self):
         
         self.result = self.df_all
@@ -301,9 +318,10 @@ class PlotGenerator:
         self.xtick_labels = []
         
     def choose_plot(self):
-        
+        if st.session_state['plot'] == 'Fecha de recepción de datos':
+            self.temporal()
         if st.session_state['plot'] == 'Edad':
-            self.gauss()
+            self.histo()
         if st.session_state['plot'] == 'Exposición luz natural':
             self.xtick = [0,1,2]
             self.xtick_labels = ['0','1','2']
@@ -323,25 +341,50 @@ class PlotGenerator:
         elif st.session_state['plot'] == "Provincia":
             self.map()
 
-    def gauss(self):
+
+
+    def temporal(self):
+        # Convert the 'date_recepcion_data' column to datetime format if not already
+        self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
+
+        # Grouping data by month
+        self.df['month'] = self.df['date_recepcion_data'].dt.to_period('M')
+        grouped_data = self.df.groupby('month').size().reset_index(name='count')
+        grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
+
+        # Plotting the count of entries per month
+        plt.figure(figsize=(10, 6))
+        sns.lineplot(data=grouped_data, x='month', y='count')
+
+        # Adding title and labels
+        plt.title('Cantidad de entradas por mes')
+        plt.xlabel('Mes')
+        plt.ylabel('Cantidad')
+
+        # Rotate the x-axis labels for better readability
+        plt.xticks(rotation=45)
+
+        # Display the plot in Streamlit
+        st.pyplot(plt)
+        
+    def histo(self):
         # Create two columns
         col1, col2 = st.columns(2)
 
         # Column without 'genero'
         with col1:
-            st.markdown("### Without 'Genero'")
-
+    
             # Histogram without 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x='age', kde=False, bins=20, ax=ax, color='skyblue')
-            ax.set_title('Age Distribution', fontsize=20)
-            ax.set_xlabel('Age', fontsize=15)
-            ax.set_ylabel('Count', fontsize=15)
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color='skyblue')
+            ax.set_title('Distribución de edad', fontsize=20)
+            ax.set_xlabel('Edad', fontsize=15)
+            ax.set_ylabel('Cantidad', fontsize=15)
             st.pyplot(fig)
 
             # KDE plot without 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.kdeplot(data=self.df, x='age', ax=ax, fill=True, color='skyblue')
+            sns.kdeplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, fill=True, color='skyblue')
             ax.set_title('Age Distribution (KDE)', fontsize=20)
             ax.set_xlabel('Age', fontsize=15)
             ax.set_ylabel('Density', fontsize=15)
@@ -349,33 +392,33 @@ class PlotGenerator:
 
             # Box plot without 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.boxplot(data=self.df, x='age', ax=ax, color='skyblue')
+            sns.boxplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
             ax.set_title('Age Distribution (Box Plot)', fontsize=20)
             ax.set_xlabel('Age', fontsize=15)
             st.pyplot(fig)
 
             # Violin plot without 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.violinplot(data=self.df, x='age', ax=ax, color='skyblue')
+            sns.violinplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
             ax.set_title('Age Distribution (Violin Plot)', fontsize=20)
             ax.set_xlabel('Age', fontsize=15)
             st.pyplot(fig)
 
         # Column with 'genero'
         with col2:
-            st.markdown("### With 'Genero'")
+  
 
             # Histogram with 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x='age', hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='Set2')
-            ax.set_title('Age Distribution by Genero', fontsize=20)
-            ax.set_xlabel('Age', fontsize=15)
-            ax.set_ylabel('Count', fontsize=15)
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='Set2')
+            ax.set_title('Distribución de edad por genero', fontsize=20)
+            ax.set_xlabel('Edad', fontsize=15)
+            ax.set_ylabel('Cantidad', fontsize=15)
             st.pyplot(fig)
 
             # KDE plot with 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.kdeplot(data=self.df, x='age', hue='genero', ax=ax, fill=True, palette='Set2')
+            sns.kdeplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', ax=ax, fill=True, palette='Set2')
             ax.set_title('Age Distribution (KDE) by Genero', fontsize=20)
             ax.set_xlabel('Age', fontsize=15)
             ax.set_ylabel('Density', fontsize=15)
@@ -383,7 +426,7 @@ class PlotGenerator:
 
             # Box plot with 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.boxplot(data=self.df, x='genero', y='age', ax=ax, palette='Set2')
+            sns.boxplot(data=self.df, x=data_dictionary[st.session_state['plot']], y=data_dictionary[st.session_state['plot']], ax=ax, palette='Set2')
             ax.set_title('Age Distribution by Genero (Box Plot)', fontsize=20)
             ax.set_xlabel('Genero', fontsize=15)
             ax.set_ylabel('Age', fontsize=15)
@@ -391,113 +434,116 @@ class PlotGenerator:
 
             # Violin plot with 'genero'
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.violinplot(data=self.df, x='genero', y='age', ax=ax, palette='Set2')
+            sns.violinplot(data=self.df, x=data_dictionary[st.session_state['plot']], y=data_dictionary[st.session_state['plot']], ax=ax, palette='Set2')
             ax.set_title('Age Distribution by Genero (Violin Plot)', fontsize=20)
             ax.set_xlabel('Genero', fontsize=15)
             ax.set_ylabel('Age', fontsize=15)
             st.pyplot(fig)
 
-
-
         
     def histo_plot(self):
-        
-        st.markdown(f"<h1 style='font-size:40px;'>{st.session_state['plot']}</h1>", unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
-        with col1:
-            fig1, ax1 = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, discrete=True, ax=ax1)
-            ax1.set_xlabel('')
-            ax1.set_ylabel('')
-            ax1.set_xticks(self.xtick)
-            st.pyplot(fig1)
-
-        # Plot 2 - Histogram with hue for 'genero'
-        with col2:
-            fig2, ax2 = plt.subplots(figsize=(8, 6))
-            sns.histplot(
-                data=self.df,
-                x=data_dictionary[st.session_state['plot']],
-                hue='genero',
-                kde=False,
-                discrete=True,
-                bins=len(self.xtick),
-                shrink=0.8,
-                ax=ax2,
-                multiple='dodge'
+        # Check if recommendations filter is applied
+        if st.session_state['all_recommendations_checkbox'] == False:
+            
+            # Plot 1: FacetGrid by 'Antes_Después' with 'genero' as hue
+            g1 = sns.FacetGrid(
+                self.df,
+                col="Antes_Después",  # Separate into columns by 'Antes_Después'
+                height=5,
+                aspect=1.2,
+                margin_titles=True
             )
-            ax2.set_title('')
-            ax2.set_xlabel('')
-            ax2.set_ylabel('')
-            ax2.set_xticks(self.xtick)
-            ax2.set_xticklabels(self.xtick_labels)
-            ax2.tick_params(axis='x')
-            ax2.tick_params(axis='y')
+
+            # Plot histogram for each facet with hue set to 'genero'
+            g1.map_dataframe(
+                sns.histplot,
+                x=data_dictionary[st.session_state['plot']],
+                hue="genero",
+                multiple="dodge",
+                shrink=0.8,
+                discrete=True,
+                palette='Set2'  # Use different colors for genero
+            )
+
+            # Add a legend to differentiate the hues
+            g1.add_legend()
+
+            # Set common labels and titles
+            g1.set_axis_labels('Value', 'Count')  # Labeling the x and y axes
+            g1.set_titles(col_template='{col_name}')
+            for ax in g1.axes.flat:
+                ax.set_xticks(self.xtick)
+                ax.set_xticklabels(self.xtick_labels)
+                ax.tick_params(axis='y')
+
             plt.tight_layout()
-            st.pyplot(fig2)
+            st.pyplot(g1)
 
-     
-        
-        g = sns.FacetGrid(
-        self.df,
-        col="age_category",  # Separate columns for each age category
-        height=5,
-        aspect=1.2,
-        margin_titles=True
-        )
+            # Plot 2: FacetGrid with rows for 'age_category' and columns for 'Antes_Después'
+            g2 = sns.FacetGrid(
+                self.df,
+                row="age_category",      # Separate rows by 'age_category'
+                col="Antes_Después",     # Separate columns by 'Antes_Después'
+                height=4,
+                aspect=1.2,
+                margin_titles=True
+            )
 
-        # Use map_dataframe to plot histograms, with 'genero' as the hue and count on y-axis
-        g.map_dataframe(
-            sns.histplot,
-            x=data_dictionary[st.session_state['plot']],
-            hue="genero",
-            multiple="dodge",
-            shrink=0.8,
-            discrete=True
-        )
+            # Plot histograms with 'genero' as the hue for each facet
+            g2.map_dataframe(
+                sns.histplot,
+                x=data_dictionary[st.session_state['plot']],
+                hue="genero",
+                multiple="dodge",
+                shrink=0.8,
+                discrete=True,
+                palette='Set3'  # Use different colors for genero
+            )
 
-        # Add a legend to differentiate the genders
-        g.add_legend()
+            # Add a legend to differentiate the hues
+            g2.add_legend()
 
-        # Set common labels and titles
-        
-        g.set_axis_labels('', '')  # Adjust the labels as needed
-        g.set_titles(col_template='{col_name}')
-        for ax in g.axes.flat:
-            ax.set_xticks(self.xtick)
-            ax.set_xticklabels(self.xtick_labels)
-            ax.tick_params(axis='y')
+            # Set common labels and titles
+            g2.set_axis_labels('Value', 'Count')  # Labeling the x and y axes
+            g2.set_titles(row_template='{row_name}', col_template='{col_name}')
+            for ax in g2.axes.flat:
+                ax.set_xticks(self.xtick)
+                ax.set_xticklabels(self.xtick_labels)
+                ax.tick_params(axis='y')
 
-        plt.tight_layout()
-        st.pyplot(g)
-        
+            plt.tight_layout()
+            st.pyplot(g2)
 
-    def map(self):
-        
-        layer = pdk.Layer(
-            "HeatmapLayer",
-            data=self.df,  # Use your DataFrame with latitude and longitude
-            get_position='[Longitude, Latitude]',  # Specify the columns for longitude and latitude
-            opacity=0.9,  # Heatmap opacity
-            radius_pixels=100,  # Radius of influence in pixels
-            intensity=1,  # Intensity of the heatmap
-        )
 
-        # Define the view (center of the map)
-        view_state = pdk.ViewState(
-            latitude=self.df['Latitude'].mean(),  # Center the map by the mean latitude
-            longitude=self.df['Longitude'].mean(),  # Center the map by the mean longitude
-            zoom=5,  # Zoom level
-            pitch=50  # Tilt the map for a 3D effect
-        )
-        # Add a tooltip to display quantities when hovering
-        tooltip = {"html": "<b>Province:</b> {provincia}<br><b>Quantity:</b> {quantity}","style": {"backgroundColor": "steelblue","color": "white"}
-        }
-        # Create the PyDeck deck object
-        deck = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
+                
+            
 
-        # If using Streamlit, render the PyDeck chart
-        st.pydeck_chart(deck)
+        def map(self):
+            
+            layer = pdk.Layer(
+                "HeatmapLayer",
+                data=self.df,  # Use your DataFrame with latitude and longitude
+                get_position='[Longitude, Latitude]',  # Specify the columns for longitude and latitude
+                opacity=0.9,  # Heatmap opacity
+                radius_pixels=100,  # Radius of influence in pixels
+                intensity=1,  # Intensity of the heatmap
+            )
+
+            # Define the view (center of the map)
+            view_state = pdk.ViewState(
+                latitude=self.df['Latitude'].mean(),  # Center the map by the mean latitude
+                longitude=self.df['Longitude'].mean(),  # Center the map by the mean longitude
+                zoom=5,  # Zoom level
+                pitch=50  # Tilt the map for a 3D effect
+            )
+            # Add a tooltip to display quantities when hovering
+            tooltip = {"html": "<b>Province:</b> {provincia}<br><b>Quantity:</b> {quantity}","style": {"backgroundColor": "steelblue","color": "white"}
+            }
+            # Create the PyDeck deck object
+            deck = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
+
+            # If using Streamlit, render the PyDeck chart
+            st.pydeck_chart(deck)
 
 def main():
     data_loader = DataLoader()
@@ -511,9 +557,9 @@ def main():
     df_filtered = filters.result  
     
     column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
-    column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
-    df_filtered = df_filtered[column_order]
-    df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+    #column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','Antes_Después','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+    #df_filtered = df_filtered[column_order]
+    #df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
    
     df_all = df_all[column_order_df_all]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
@@ -531,9 +577,8 @@ def main():
 
 main()
 
-# streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main.py'
 
-
+#streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main.py'
 
 
 
