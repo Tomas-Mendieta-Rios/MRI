@@ -99,13 +99,13 @@ class StreamLit:
        
         self.df = df
         self.initialize_filters()
-        
    
     def sidebar(self):
         st.sidebar.header('Filter Options')
         
-        st.sidebar.selectbox("Entrada Usuarios", options=["Entradas", "Usuarios"], key='entradas_usuarios_filter')
 
+        st.sidebar.selectbox("Entrada Usuarios", options=["Entradas", "Usuarios"], key='entradas_usuarios_filter')
+            
         st.sidebar.checkbox("All Dates",  key='all_dates_checkbox')
         if not st.session_state['all_dates_checkbox']:
             st.sidebar.date_input("Start Date", value=self.df['date_recepcion_data'].min(), key='start_date_input')
@@ -121,10 +121,10 @@ class StreamLit:
 
         st.sidebar.checkbox("All Recommendations", key='all_recommendations_checkbox')
         if not st.session_state['all_recommendations_checkbox']:
-            st.sidebar.selectbox("Seguiste recomendaciones", options=['Si', 'No', 'Ambas'], key='recommendations_selectbox')
+            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No','Ambas'], key='recommendations_selectbox')
             st.sidebar.number_input("Min days difference", min_value=0, max_value=100, key='min_days_diff_input')
             st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, key='max_days_diff_input')
-            st.sidebar.selectbox("Ambas Antes Después", options=["Ambas", "Antes", "Después"], key='ambas_antes_despues')
+            st.sidebar.selectbox("Antes Después", options=["Antes", "Después","Ambas"], key='ambas_antes_despues')
 
         st.sidebar.subheader("Define Age Categories")
         st.sidebar.slider("Min Age for Jóvenes", min_value=0, max_value=100,  key='age_joven_min_slider')
@@ -135,14 +135,14 @@ class StreamLit:
         #st.sidebar.selectbox('Características usuarios', ['Edad', 'Género', 'Provincia', 'Fecha de generación de recomendación'], key='plot')
         #st.sidebar.selectbox('Recomendaciones', ['Seguiste recomendaciones', 'Percepción de cambio'], key='plot')
         #st.sidebar.selectbox("Exposición a la luz", ['Exposición luz natural', 'Exposición luz artificial'], key='plot')
-        st.sidebar.selectbox("Sueño", list(data_dictionary.keys()), key='plot')
+        st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
         st.sidebar.checkbox("Mostrar datos", key='datos')
        
         
     def initialize_filters(self):
-        
+    
         if 'datos' not in st.session_state:
-            st.session_state['datos'] = True
+            st.session_state['datos'] = False
             
         if 'age_range_slider' not in st.session_state:
             st.session_state['age_range_slider'] = [self.df['age'].min(), self.df['age'].max()]
@@ -154,10 +154,10 @@ class StreamLit:
             st.session_state['df_selected'] = self.df
 
         if 'recommendations_selectbox' not in st.session_state:
-            st.session_state['recommendations_selectbox'] = 'Ambas'
+            st.session_state['recommendations_selectbox'] = 'Después'
 
         if 'min_days_diff_input' not in st.session_state:
-            st.session_state['min_days_diff_input'] = 0
+            st.session_state['min_days_diff_input'] = 7
 
         if 'max_days_diff_input' not in st.session_state:
             st.session_state['max_days_diff_input'] = 30
@@ -172,7 +172,7 @@ class StreamLit:
             st.session_state['age_tercera_edad_min_slider'] = 70
 
         if 'antes_despues' not in st.session_state:
-            st.session_state['antes_despues'] = 'Ambas'
+            st.session_state['antes_despues'] = 'Antes'
 
         if 'entradas_usuarios_filter' not in st.session_state:
             st.session_state['entradas_usuarios_filter'] = 'Entradas'
@@ -190,7 +190,7 @@ class StreamLit:
             st.session_state['all_recommendations_checkbox'] = True
         
         if 'plot' not in st.session_state:
-            st.session_state['plot'] = 'Exposición luz natural'
+            st.session_state['plot'] = 'Edad'
 
         
 class Filters:
@@ -232,48 +232,34 @@ class Filters:
                             if when_filter == 'Ambas':
                                 final_indices.append(idx - 1)
                                 final_indices.append(idx)
-                                antes_despues_labels.append('Antes')
-                                antes_despues_labels.append('Después')
                             elif when_filter == 'Antes':
                                 final_indices.append(idx - 1)
-                                antes_despues_labels.append('Antes')
                             elif when_filter == 'Después':
                                 final_indices.append(idx)
-                                antes_despues_labels.append('Después')
-
                 elif rec_filter == 'Si' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
                     if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
-                            antes_despues_labels.append('Antes')
-                            antes_despues_labels.append('Después')
                         elif when_filter == 'Antes':
                             final_indices.append(idx - 1)
                             antes_despues_labels.append('Antes')
                         elif when_filter == 'Después':
                             final_indices.append(idx)
-                            antes_despues_labels.append('Después')
-
                 elif rec_filter == 'No' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
                     if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
-                            antes_despues_labels.append('Antes')
-                            antes_despues_labels.append('Después')
+               
                         elif when_filter == 'Antes':
                             final_indices.append(idx - 1)
-                            antes_despues_labels.append('Antes')
                         elif when_filter == 'Después':
                             final_indices.append(idx)
-                            antes_despues_labels.append('Después')
+                         
 
         # Create the filtered dataframe
         self.result = self.result.loc[final_indices].reset_index(drop=True)
-
-        # Add the "Antes_Después" column for all cases
-        self.result['Antes_Después'] = antes_despues_labels
 
     
     def categorize_age(self):
@@ -311,38 +297,87 @@ class Filters:
 
         return self.result
             
+
 class PlotGenerator:
     def __init__(self,df):
         self.df = df
+        self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+        self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+        self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
         self.xtick = []
         self.xtick_labels = []
         
     def choose_plot(self):
+
         if st.session_state['plot'] == 'Fecha de recepción de datos':
             self.temporal()
         if st.session_state['plot'] == 'Edad':
-            self.histo()
+            self.pie_plot()
+            self.histo_plot()
         if st.session_state['plot'] == 'Exposición luz natural':
             self.xtick = [0,1,2]
             self.xtick_labels = ['0','1','2']
-            self.histo_plot()
+            self.text()
+            self.bar_plot()
         elif st.session_state['plot'] == "Exposición luz artificial":
             self.xtick = [0,1]
             self.xtick_labels = ['0','1']
+            self.text()
             self.histo_plot()
         elif st.session_state['plot'] == "Otra actividad habitual no fotica":
             self.xtick = [0,1]
             self.xtick_labels = ['0','1']
-            self.histo_plot()
+            self.text()
+            self.bar_plot()
         elif st.session_state['plot'] == "Estudios no foticos integrados":
             self.xtick = [-1,0,1]
             self.xtick_labels = ['-1','0','1']
-            self.histo_plot()
+            self.bar_plot()
         elif st.session_state['plot'] == "Provincia":
             self.map()
+    def text(self):
+        if st.session_state['plot'] == "Exposición luz natural":
+            st.write('Distintas condiciones exposicion luz natural')
+            st.write('0: Se expone poco a la luz solar')
+            st.write('0: Se expone medio a la luz solar')
+            
+    def pie_plot(self):
+        col_1, col_2, col_3 = st.columns([1,2,1])
+        with col_2:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            age_counts = self.df['age_category'].value_counts()
+            colors = sns.color_palette("coolwarm", 3)  # Use a sophisticated color palette for the pie chart
+            ax.pie(age_counts, labels=['Jóvenes', 'Adultos', 'Tercera Edad'], autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Distribución por Categoría de Edad', fontsize=15)
+            st.pyplot(fig)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            gender_counts = self.df_Jovenes['genero'].value_counts()
+            colors = sns.color_palette("coolwarm", len(gender_counts))
+            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Distribución por Género en Jóvenes', fontsize=15)
+            st.pyplot(fig)
+        
+        with col2:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            gender_counts = self.df_Adultos['genero'].value_counts()
+            colors = sns.color_palette("coolwarm", len(gender_counts))
+            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Distribución por Género en Adultos', fontsize=15)
+            st.pyplot(fig)
+        
+        with col3:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            gender_counts = self.df_TerceraEdad['genero'].value_counts()
+            colors = sns.color_palette("coolwarm", len(gender_counts))
+            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Distribución por Género en Tercera Edad', fontsize=15)
+            st.pyplot(fig)
 
 
-
+    
     def temporal(self):
         # Convert the 'date_recepcion_data' column to datetime format if not already
         self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
@@ -367,158 +402,140 @@ class PlotGenerator:
         # Display the plot in Streamlit
         st.pyplot(plt)
         
-    def histo(self):
-        # Create two columns
-        col1, col2 = st.columns(2)
-
-        # Column without 'genero'
-        with col1:
-    
-            # Histogram without 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color='skyblue')
-            ax.set_title('Distribución de edad', fontsize=20)
-            ax.set_xlabel('Edad', fontsize=15)
-            ax.set_ylabel('Cantidad', fontsize=15)
-            st.pyplot(fig)
-
-            # KDE plot without 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.kdeplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, fill=True, color='skyblue')
-            ax.set_title('Age Distribution (KDE)', fontsize=20)
-            ax.set_xlabel('Age', fontsize=15)
-            ax.set_ylabel('Density', fontsize=15)
-            st.pyplot(fig)
-
-            # Box plot without 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.boxplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
-            ax.set_title('Age Distribution (Box Plot)', fontsize=20)
-            ax.set_xlabel('Age', fontsize=15)
-            st.pyplot(fig)
-
-            # Violin plot without 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.violinplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
-            ax.set_title('Age Distribution (Violin Plot)', fontsize=20)
-            ax.set_xlabel('Age', fontsize=15)
-            st.pyplot(fig)
-
-        # Column with 'genero'
-        with col2:
-  
-
-            # Histogram with 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='Set2')
-            ax.set_title('Distribución de edad por genero', fontsize=20)
-            ax.set_xlabel('Edad', fontsize=15)
-            ax.set_ylabel('Cantidad', fontsize=15)
-            st.pyplot(fig)
-
-            # KDE plot with 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.kdeplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', ax=ax, fill=True, palette='Set2')
-            ax.set_title('Age Distribution (KDE) by Genero', fontsize=20)
-            ax.set_xlabel('Age', fontsize=15)
-            ax.set_ylabel('Density', fontsize=15)
-            st.pyplot(fig)
-
-            # Box plot with 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.boxplot(data=self.df, x=data_dictionary[st.session_state['plot']], y=data_dictionary[st.session_state['plot']], ax=ax, palette='Set2')
-            ax.set_title('Age Distribution by Genero (Box Plot)', fontsize=20)
-            ax.set_xlabel('Genero', fontsize=15)
-            ax.set_ylabel('Age', fontsize=15)
-            st.pyplot(fig)
-
-            # Violin plot with 'genero'
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.violinplot(data=self.df, x=data_dictionary[st.session_state['plot']], y=data_dictionary[st.session_state['plot']], ax=ax, palette='Set2')
-            ax.set_title('Age Distribution by Genero (Violin Plot)', fontsize=20)
-            ax.set_xlabel('Genero', fontsize=15)
-            ax.set_ylabel('Age', fontsize=15)
-            st.pyplot(fig)
-
-        
     def histo_plot(self):
-        # Check if recommendations filter is applied
-        if st.session_state['all_recommendations_checkbox'] == False:
+        # Use a consistent color palette for all the histograms
+        base_color = 'skyblue'
+        palette = sns.color_palette("coolwarm", 3)  # A fancier, cooler color palette
+
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[0])
+            ax.set_title('Dist. de edad', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
             
-            # Plot 1: FacetGrid by 'Antes_Después' with 'genero' as hue
-            g1 = sns.FacetGrid(
-                self.df,
-                col="Antes_Después",  # Separate into columns by 'Antes_Después'
-                height=5,
-                aspect=1.2,
-                margin_titles=True
-            )
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[1])
+            ax.set_title('Dist. de edad - Jóvenes', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[2])
+            ax.set_title('Dist. de edad - Adultos', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[0])
+            ax.set_title('Dist. de edad - Tercera Edad', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
 
-            # Plot histogram for each facet with hue set to 'genero'
-            g1.map_dataframe(
-                sns.histplot,
-                x=data_dictionary[st.session_state['plot']],
-                hue="genero",
-                multiple="dodge",
-                shrink=0.8,
-                discrete=True,
-                palette='Set2'  # Use different colors for genero
-            )
+        with col2:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title('Dist. de edad por genero', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title('Dist. de edad por genero - Jóvenes', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title('Dist. de edad por genero - Adultos', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title('Dist. de edad por genero - Tercera Edad', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            st.pyplot(fig)
+            
+            
+        
+    def bar_plot(self):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            ax.set_title(f"{st.session_state['plot']}", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
+                        
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
 
-            # Add a legend to differentiate the hues
-            g1.add_legend()
-
-            # Set common labels and titles
-            g1.set_axis_labels('Value', 'Count')  # Labeling the x and y axes
-            g1.set_titles(col_template='{col_name}')
-            for ax in g1.axes.flat:
-                ax.set_xticks(self.xtick)
-                ax.set_xticklabels(self.xtick_labels)
-                ax.tick_params(axis='y')
-
-            plt.tight_layout()
-            st.pyplot(g1)
-
-            # Plot 2: FacetGrid with rows for 'age_category' and columns for 'Antes_Después'
-            g2 = sns.FacetGrid(
-                self.df,
-                row="age_category",      # Separate rows by 'age_category'
-                col="Antes_Después",     # Separate columns by 'Antes_Después'
-                height=4,
-                aspect=1.2,
-                margin_titles=True
-            )
-
-            # Plot histograms with 'genero' as the hue for each facet
-            g2.map_dataframe(
-                sns.histplot,
-                x=data_dictionary[st.session_state['plot']],
-                hue="genero",
-                multiple="dodge",
-                shrink=0.8,
-                discrete=True,
-                palette='Set3'  # Use different colors for genero
-            )
-
-            # Add a legend to differentiate the hues
-            g2.add_legend()
-
-            # Set common labels and titles
-            g2.set_axis_labels('Value', 'Count')  # Labeling the x and y axes
-            g2.set_titles(row_template='{row_name}', col_template='{col_name}')
-            for ax in g2.axes.flat:
-                ax.set_xticks(self.xtick)
-                ax.set_xticklabels(self.xtick_labels)
-                ax.tick_params(axis='y')
-
-            plt.tight_layout()
-            st.pyplot(g2)
-
-
-                
+            
+        with col2:   
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            ax.set_title(f"{st.session_state['plot']}", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
+            
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
+            ax.set_ylabel('', fontsize=15)
+            ax.set_xlabel('')
+            st.pyplot(fig)
             
 
-        def map(self):
+
+
+
+    def map(self):
             
             layer = pdk.Layer(
                 "HeatmapLayer",
@@ -557,13 +574,15 @@ def main():
     df_filtered = filters.result  
     
     column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
-    #column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','Antes_Después','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
-    #df_filtered = df_filtered[column_order]
-    #df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+    column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+    df_filtered = df_filtered[column_order]
+    df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+   
+    
    
     df_all = df_all[column_order_df_all]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-    if  st.session_state['datos'] == False:  
+    if st.session_state['datos'] == True:
         st.write('df_all')
         st.write(f'Cantidad de usuarios: {len(df_all)}')  
         st.write(df_all)
