@@ -291,11 +291,13 @@ class PlotGenerator:
         self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
         self.value_counts_df = None
         self.value_counts_df_RangoEtario = None
+        self.bins = None
         
     def choose_plot(self):
         if st.session_state['plot'] == 'Fecha de recepción de datos':
             self.temporal()
         elif st.session_state['plot'] == 'Edad':
+            self.bins = 20
             self.value_counts_df = 'age_category'
             self.value_counts_df_RangoEtario = 'genero'
             self.pie_plot()
@@ -339,8 +341,14 @@ class PlotGenerator:
             self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_cena_integrada'
             self.pie_plot()
             self.bar_plot()
-        
-
+        elif st.session_state['plot'] == "Horario de acostarse - habiles":
+            hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
+            self.df['HAB_Hora_acostar'] = hab_acostar_time.dt.hour + hab_acostar_time.dt.minute / 60
+            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
 
     def pie_plot(self):
         col_1, col_2, col_3 = st.columns([1,2,1])
@@ -490,61 +498,62 @@ class PlotGenerator:
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[0])
-            ax.set_title('Dist. de edad', fontsize=20)
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[0])
+            ax.set_title(st.session_state['plot'], fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[1])
-            ax.set_title('Dist. de edad - Jóvenes', fontsize=20)
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[1])
+            ax.set_title(f"{st.session_state['plot']} Jóvenes", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[2])
-            ax.set_title('Dist. de edad - Adultos', fontsize=20)
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[2])
+            ax.set_title(f"{st.session_state['plot']} Adultos", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[0])
-            ax.set_title('Dist. de edad - Tercera Edad', fontsize=20)
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[0])
+            ax.set_title(f"{st.session_state['plot']} Tercera Edad", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
 
         with col2:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
-            ax.set_title('Dist. de edad por genero', fontsize=20)
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title(f"{st.session_state['plot']} Género ", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
-            ax.set_title('Dist. de edad por genero - Jóvenes', fontsize=20)
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title(f"{st.session_state['plot']} Género - Jóvenes", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
-            ax.set_title('Dist. de edad por genero - Adultos', fontsize=20)
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title(f"{st.session_state['plot']} Género - Adultos", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=20, multiple='dodge', ax=ax, palette='coolwarm')
-            ax.set_title('Dist. de edad por genero - Tercera Edad', fontsize=20)
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            ax.set_title(f"{st.session_state['plot']} Género - T Edad", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
+                
     def bar_plot(self):
         col1, col2 = st.columns(2)
         
@@ -600,11 +609,32 @@ class PlotGenerator:
             
             fig, ax = plt.subplots(figsize=(8, 6))
             sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
-            ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
+            ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
-            
+   
+
+    def box_plot(self):
+        # Convert `HAB_Hora_acostar` to decimal hours
+        hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
+        self.df['HAB_Hora_acostar_decimal'] = hab_acostar_time.dt.hour + hab_acostar_time.dt.minute / 60
+
+        # Filter out missing values if any
+        df_filtered = self.df.dropna(subset=['HAB_Hora_acostar_decimal', data_dictionary[st.session_state['plot']]])
+
+        # Create the plot with the same format as your example
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.boxplot(data=df_filtered, x=data_dictionary[st.session_state['plot']], y='HAB_Hora_acostar_decimal', ax=ax, palette='coolwarm')
+        
+        # Set plot labels and title using `ax`
+        ax.set_title(f"{st.session_state['plot']} - Box Plot of Horario Acostarse", fontsize=20)
+        ax.set_xlabel('Grupo', fontsize=15)
+        ax.set_ylabel('Horario Acostarse (Horas Decimales)', fontsize=15)
+        
+        # Display the plot using Streamlit
+        st.pyplot(fig)
+    
     def map(self): 
             layer = pdk.Layer(
                 "HeatmapLayer",
