@@ -11,7 +11,6 @@ st.set_page_config(layout="wide")
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
     'Edad': 'age',
-    'Género': 'genero',
     'Provincia': 'provincia',
     'Seguiste recomendaciones': 'SEGUISTE_RECOMENDACIONES',
     'Percepción de cambio': 'RECOMENDACIONES_AJUSTE',
@@ -256,12 +255,8 @@ class Filters:
                             final_indices.append(idx - 1)
                         elif when_filter == 'Después':
                             final_indices.append(idx)
-                         
-
-        # Create the filtered dataframe
         self.result = self.result.loc[final_indices].reset_index(drop=True)
-
-    
+        
     def categorize_age(self):
         def age_category(age):
             if age < st.session_state['age_adult_min_slider']:
@@ -270,33 +265,23 @@ class Filters:
                 return 'Adultos'
             else:
                 return 'Tercera Edad'
-        
         self.result['age_category'] = self.result['age'].apply(age_category)
 
     def choose_filter(self):
-        
         self.result = self.df_all
-        
         if not st.session_state['all_dates_checkbox']:  
             self.dates()
-    
         if not st.session_state['all_ages_checkbox']:  
             self.ages()
-
         if st.session_state['age_joven_min_slider'] or st.session_state['age_adult_min_slider'] or st.session_state['age_tercera_edad_min_slider'] :  
             self.categorize_age()
-            
         if not st.session_state['all_genders_checkbox']:  
             self.genders()
-        
         if not st.session_state['all_recommendations_checkbox']:  
             self.recomendations()
-        
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
             self.entries_users()
-
         return self.result
-            
 
 class PlotGenerator:
     def __init__(self,df):
@@ -304,111 +289,205 @@ class PlotGenerator:
         self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
         self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
         self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
-        self.xtick = []
-        self.xtick_labels = []
+        self.value_counts_df = None
+        self.value_counts_df_RangoEtario = None
         
     def choose_plot(self):
-
         if st.session_state['plot'] == 'Fecha de recepción de datos':
             self.temporal()
-        if st.session_state['plot'] == 'Edad':
+        elif st.session_state['plot'] == 'Edad':
+            self.value_counts_df = 'age_category'
+            self.value_counts_df_RangoEtario = 'genero'
             self.pie_plot()
             self.histo_plot()
-        if st.session_state['plot'] == 'Exposición luz natural':
-            self.xtick = [0,1,2]
-            self.xtick_labels = ['0','1','2']
-            self.text()
-            self.bar_plot()
-        elif st.session_state['plot'] == "Exposición luz artificial":
-            self.xtick = [0,1]
-            self.xtick_labels = ['0','1']
-            self.text()
-            self.histo_plot()
-        elif st.session_state['plot'] == "Otra actividad habitual no fotica":
-            self.xtick = [0,1]
-            self.xtick_labels = ['0','1']
-            self.text()
-            self.bar_plot()
-        elif st.session_state['plot'] == "Estudios no foticos integrados":
-            self.xtick = [-1,0,1]
-            self.xtick_labels = ['-1','0','1']
-            self.bar_plot()
         elif st.session_state['plot'] == "Provincia":
             self.map()
-    def text(self):
-        if st.session_state['plot'] == "Exposición luz natural":
+        elif st.session_state['plot'] == 'Seguiste recomendaciones':
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'SEGUISTE_RECOMENDACIONES'
+            self.pie_plot()
+            self.bar_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == 'Percepción de cambio': 
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'RECOMENDACIONES_AJUSTE'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == 'Exposición luz natural':
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'FOTICO_luz_natural_8_15_integrada'
+            self.pie_plot()
             st.write('Distintas condiciones exposicion luz natural')
             st.write('0: Se expone poco a la luz solar')
-            st.write('0: Se expone medio a la luz solar')
-            
+            st.write('1: Se expone medio a la luz solar')
+            st.write('2: Se expone medio a la luz solar')
+            self.bar_plot()
+        elif st.session_state['plot'] == "Exposición luz artificial":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'
+            self.pie_plot()
+            self.histo_plot()
+        elif st.session_state['plot'] == "Estudios no foticos integrados":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_estudios_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Trabajo no fotico integrado":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_trabajo_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Otra actividad habitual no fotica":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_otra_actividad_habitual_si_no'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Cena no fotica integrada":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_cena_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        
+
+
     def pie_plot(self):
         col_1, col_2, col_3 = st.columns([1,2,1])
         with col_2:
             fig, ax = plt.subplots(figsize=(8, 6))
-            age_counts = self.df['age_category'].value_counts()
-            colors = sns.color_palette("coolwarm", 3)  # Use a sophisticated color palette for the pie chart
-            ax.pie(age_counts, labels=['Jóvenes', 'Adultos', 'Tercera Edad'], autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Distribución por Categoría de Edad', fontsize=15)
+            colors = sns.color_palette("coolwarm", 3)  
+            value_counts = self.df[self.value_counts_df].value_counts()
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Proporción', fontsize=15)
             st.pyplot(fig)
         
         col1, col2, col3 = st.columns(3)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            gender_counts = self.df_Jovenes['genero'].value_counts()
-            colors = sns.color_palette("coolwarm", len(gender_counts))
-            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Distribución por Género en Jóvenes', fontsize=15)
+            value_counts = self.df_Jovenes[self.value_counts_df_RangoEtario].value_counts()
+            colors = sns.color_palette("coolwarm", len(value_counts))
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Proporción Jóvenes', fontsize=15)
             st.pyplot(fig)
-        
         with col2:
             fig, ax = plt.subplots(figsize=(8, 6))
-            gender_counts = self.df_Adultos['genero'].value_counts()
-            colors = sns.color_palette("coolwarm", len(gender_counts))
-            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Distribución por Género en Adultos', fontsize=15)
+            value_counts = self.df_Adultos[self.value_counts_df_RangoEtario].value_counts()
+            colors = sns.color_palette("coolwarm", len(value_counts))
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Proporción Adultos', fontsize=15)
             st.pyplot(fig)
-        
         with col3:
             fig, ax = plt.subplots(figsize=(8, 6))
-            gender_counts = self.df_TerceraEdad['genero'].value_counts()
-            colors = sns.color_palette("coolwarm", len(gender_counts))
-            ax.pie(gender_counts, labels=gender_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Distribución por Género en Tercera Edad', fontsize=15)
+            value_counts = self.df_TerceraEdad[self.value_counts_df_RangoEtario].value_counts()
+            colors = sns.color_palette("coolwarm", len(value_counts))
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Proporción Tercera Edad', fontsize=15)
+            st.pyplot(fig)
+            
+    def temporal(self):
+        palette = sns.color_palette("coolwarm", 3)
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Plot for the entire dataset
+            self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
+            self.df['month'] = self.df['date_recepcion_data'].dt.to_period('M')
+            grouped_data = self.df.groupby('month').size().reset_index(name='count')
+            grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data, x='month', y='count', color=palette[0], ax=ax)
+            ax.set_title('Entradas por mes', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
             st.pyplot(fig)
 
+            # Plot for Jóvenes
+            self.df_Jovenes['date_recepcion_data'] = pd.to_datetime(self.df_Jovenes['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
+            self.df_Jovenes['month'] = self.df_Jovenes['date_recepcion_data'].dt.to_period('M')
+            grouped_data_jovenes = self.df_Jovenes.groupby('month').size().reset_index(name='count')
+            grouped_data_jovenes['month'] = grouped_data_jovenes['month'].dt.to_timestamp()
 
-    
-    def temporal(self):
-        # Convert the 'date_recepcion_data' column to datetime format if not already
-        self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_jovenes, x='month', y='count', color=palette[1], ax=ax)
+            ax.set_title('Entradas por mes - Jóvenes', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
 
-        # Grouping data by month
-        self.df['month'] = self.df['date_recepcion_data'].dt.to_period('M')
-        grouped_data = self.df.groupby('month').size().reset_index(name='count')
-        grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
+            # Plot for Adultos
+            self.df_Adultos['date_recepcion_data'] = pd.to_datetime(self.df_Adultos['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
+            self.df_Adultos['month'] = self.df_Adultos['date_recepcion_data'].dt.to_period('M')
+            grouped_data_adultos = self.df_Adultos.groupby('month').size().reset_index(name='count')
+            grouped_data_adultos['month'] = grouped_data_adultos['month'].dt.to_timestamp()
 
-        # Plotting the count of entries per month
-        plt.figure(figsize=(10, 6))
-        sns.lineplot(data=grouped_data, x='month', y='count')
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_adultos, x='month', y='count', color=palette[2], ax=ax)
+            ax.set_title('Entradas por mes - Adultos', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
 
-        # Adding title and labels
-        plt.title('Cantidad de entradas por mes')
-        plt.xlabel('Mes')
-        plt.ylabel('Cantidad')
+            # Plot for Tercera Edad
+            self.df_TerceraEdad['date_recepcion_data'] = pd.to_datetime(self.df_TerceraEdad['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
+            self.df_TerceraEdad['month'] = self.df_TerceraEdad['date_recepcion_data'].dt.to_period('M')
+            grouped_data_tercera = self.df_TerceraEdad.groupby('month').size().reset_index(name='count')
+            grouped_data_tercera['month'] = grouped_data_tercera['month'].dt.to_timestamp()
 
-        # Rotate the x-axis labels for better readability
-        plt.xticks(rotation=45)
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_tercera, x='month', y='count', color=palette[0], ax=ax)
+            ax.set_title('Entradas por mes - Tercera Edad', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
 
-        # Display the plot in Streamlit
-        st.pyplot(plt)
-        
+        with col2:
+            # Plot for the entire dataset, by gender
+            grouped_data_gender = self.df.groupby(['month', 'genero']).size().reset_index(name='count')
+            grouped_data_gender['month'] = grouped_data_gender['month'].dt.to_timestamp()
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            ax.set_title('Entradas por mes por género', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+
+            # Plot for Jóvenes, by gender
+            grouped_data_jovenes_gender = self.df_Jovenes.groupby(['month', 'genero']).size().reset_index(name='count')
+            grouped_data_jovenes_gender['month'] = grouped_data_jovenes_gender['month'].dt.to_timestamp()
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_jovenes_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            ax.set_title('Entradas por mes por género - Jóvenes', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+
+            # Plot for Adultos, by gender
+            grouped_data_adultos_gender = self.df_Adultos.groupby(['month', 'genero']).size().reset_index(name='count')
+            grouped_data_adultos_gender['month'] = grouped_data_adultos_gender['month'].dt.to_timestamp()
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_adultos_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            ax.set_title('Entradas por mes por género - Adultos', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+
+            # Plot for Tercera Edad, by gender
+            grouped_data_tercera_gender = self.df_TerceraEdad.groupby(['month', 'genero']).size().reset_index(name='count')
+            grouped_data_tercera_gender['month'] = grouped_data_tercera_gender['month'].dt.to_timestamp()
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.lineplot(data=grouped_data_tercera_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            ax.set_title('Entradas por mes por género - T. Edad', fontsize=20)
+            ax.set_xlabel('', fontsize=15)
+            ax.set_ylabel('', fontsize=15)
+            plt.xticks(rotation=45)
+            st.pyplot(fig)
+
     def histo_plot(self):
-        # Use a consistent color palette for all the histograms
-        base_color = 'skyblue'
-        palette = sns.color_palette("coolwarm", 3)  # A fancier, cooler color palette
-
+        palette = sns.color_palette("coolwarm", 3)  
         col1, col2 = st.columns(2)
-        
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
             sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=20, ax=ax, color=palette[0])
@@ -466,9 +545,6 @@ class PlotGenerator:
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
-            
-            
-        
     def bar_plot(self):
         col1, col2 = st.columns(2)
         
@@ -499,9 +575,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
-            st.pyplot(fig)
-
-            
+            st.pyplot(fig)   
         with col2:   
             fig, ax = plt.subplots(figsize=(8, 6))
             sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
@@ -531,12 +605,7 @@ class PlotGenerator:
             ax.set_xlabel('')
             st.pyplot(fig)
             
-
-
-
-
-    def map(self):
-            
+    def map(self): 
             layer = pdk.Layer(
                 "HeatmapLayer",
                 data=self.df,  # Use your DataFrame with latitude and longitude
@@ -577,8 +646,6 @@ def main():
     column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     df_filtered = df_filtered[column_order]
     df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-   
-    
    
     df_all = df_all[column_order_df_all]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
