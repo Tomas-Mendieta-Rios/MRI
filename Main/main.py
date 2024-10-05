@@ -20,9 +20,9 @@ data_dictionary = {
     'Trabajo no fotico integrado': 'NOFOTICO_trabajo_integrada',
     'Otra actividad habitual no fotica': 'NOFOTICO_otra_actividad_habitual_si_no',
     'Cena no fotica integrada': 'NOFOTICO_cena_integrada',
-    'Horario de acostarse - habiles': 'HAB_Hora_acostar',
-    'Horario decidir dormir (habitual)': 'HAB_Hora_decidir',
-    'Minutos dormir (habitual)': 'HAB_min_dormir',
+    'Horario de acostarse - Hábiles': 'HAB_Hora_acostar',
+    'Horario decidir dormir - Hábiles': 'HAB_Hora_decidir',
+    'Minutos dormir - Hábiles': 'HAB_min_dormir',
     'Hora despertar (habitual)': 'HAB_Soffw',
     'Alarma no fotica (sí/no)': 'NOFOTICO_HAB_alarma_si_no',
     'Siesta habitual integrada': 'HAB_siesta_integrada',
@@ -315,16 +315,16 @@ class PlotGenerator:
             self.bar_plot()
         elif st.session_state['plot'] == 'Exposición luz natural':
             self.value_counts_df = self.value_counts_df_RangoEtario = 'FOTICO_luz_natural_8_15_integrada'
-            self.pie_plot()
             st.write('Distintas condiciones exposicion luz natural')
             st.write('0: Se expone poco a la luz solar')
             st.write('1: Se expone medio a la luz solar')
             st.write('2: Se expone medio a la luz solar')
+            self.pie_plot()
             self.bar_plot()
         elif st.session_state['plot'] == "Exposición luz artificial":
             self.value_counts_df = self.value_counts_df_RangoEtario = 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'
             self.pie_plot()
-            self.histo_plot()
+            self.bar_plot()
         elif st.session_state['plot'] == "Estudios no foticos integrados":
             self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_estudios_integrada'
             self.pie_plot()
@@ -341,12 +341,23 @@ class PlotGenerator:
             self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_cena_integrada'
             self.pie_plot()
             self.bar_plot()
-        elif st.session_state['plot'] == "Horario de acostarse - habiles":
-            hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
-            self.df['HAB_Hora_acostar'] = hab_acostar_time.dt.hour + hab_acostar_time.dt.minute / 60
+        elif st.session_state['plot'] == "Horario de acostarse - Hábiles":
+            time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
+            self.df['HAB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
             self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
             self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
             self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Horario decidir dormir - Hábiles':
+            time = pd.to_datetime(self.df['HAB_Hora_decidir'], format='%H:%M')
+            self.df['HAB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
+            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Minutos dormir - Hábiles':
             self.bins = 24
             self.histo_plot()
 
