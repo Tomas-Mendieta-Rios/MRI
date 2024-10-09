@@ -16,6 +16,7 @@ custom_colors = {
     'Yellow_Adultos': '#EADF6E',
     'Orange_TerceraEdad': '#F0A154'
 }
+
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
     'Edad': 'age',
@@ -186,9 +187,6 @@ class StreamLit:
 
         st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
         st.sidebar.checkbox("Mostrar datos", key='datos')
-       
-        
-
         
 class Filters:
     def __init__(self,df):
