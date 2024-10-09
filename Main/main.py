@@ -102,7 +102,6 @@ class DataLoader:
         return self.df_all
 
 class StreamLit:
-    
     def __init__(self,df):
         self.df = df
         self.initialize_filters()
@@ -186,6 +185,8 @@ class StreamLit:
 
 
         st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
+        if 'datos' not in st.session_state:
+            st.session_state['datos'] = True
         st.sidebar.checkbox("Mostrar datos", key='datos')
         
 class Filters:
