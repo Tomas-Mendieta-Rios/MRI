@@ -7,7 +7,15 @@ import pydeck as pdk
 import plotly.express as px
 import seaborn.objects as so
 st.set_page_config(layout="wide")
-
+color_palette = color_list = sns.color_palette("Blues", n_colors=5)
+custom_colors = {
+    'Purple_0': '#8570A9',
+    'Blue_1': '#9ABECE',
+    'Grey_all': '#D3D3D3',
+    'Green_Jóvenes': '#6ABF69',
+    'Yellow_Adultos': '#EADF6E',
+    'Orange_TerceraEdad': '#F0A154'
+}
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
     'Edad': 'age',
@@ -23,7 +31,7 @@ data_dictionary = {
     'Horario de acostarse - Hábiles': 'HAB_Hora_acostar',
     'Horario decidir dormir - Hábiles': 'HAB_Hora_decidir',
     'Minutos dormir - Hábiles': 'HAB_min_dormir',
-    'Hora despertar (habitual)': 'HAB_Soffw',
+    'Hora despertar - Hábiles': 'HAB_Soffw',
     'Alarma no fotica (sí/no)': 'NOFOTICO_HAB_alarma_si_no',
     'Siesta habitual integrada': 'HAB_siesta_integrada',
     'Calidad de sueño habitual': 'HAB_calidad',
@@ -95,53 +103,11 @@ class DataLoader:
 class StreamLit:
     
     def __init__(self,df):
-       
         self.df = df
         self.initialize_filters()
-   
-    def sidebar(self):
-        st.sidebar.header('Filter Options')
-        
-
-        st.sidebar.selectbox("Entrada Usuarios", options=["Entradas", "Usuarios"], key='entradas_usuarios_filter')
-            
-        st.sidebar.checkbox("All Dates",  key='all_dates_checkbox')
-        if not st.session_state['all_dates_checkbox']:
-            st.sidebar.date_input("Start Date", value=self.df['date_recepcion_data'].min(), key='start_date_input')
-            st.sidebar.date_input("End Date", value=self.df['date_recepcion_data'].max(), key='end_date_input')
-
-        st.sidebar.checkbox("All Ages", key='all_ages_checkbox')
-        if not st.session_state['all_ages_checkbox']:
-            st.sidebar.slider("Age Range", min_value=int(self.df['age'].min()),max_value=int(self.df['age'].max()),value=(int(self.df['age'].min()), int(self.df['age'].max())),key='age_range_slider')
-
-        st.sidebar.checkbox("All Genders",  key='all_genders_checkbox')
-        if not st.session_state['all_genders_checkbox']:
-            st.sidebar.selectbox("Select Gender", options=self.df['genero'].unique().tolist(), key='gender_selectbox')
-
-        st.sidebar.checkbox("All Recommendations", key='all_recommendations_checkbox')
-        if not st.session_state['all_recommendations_checkbox']:
-            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No','Ambas'], key='recommendations_selectbox')
-            st.sidebar.number_input("Min days difference", min_value=0, max_value=100, key='min_days_diff_input')
-            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, key='max_days_diff_input')
-            st.sidebar.selectbox("Antes Después", options=["Antes", "Después","Ambas"], key='ambas_antes_despues')
-
-        st.sidebar.subheader("Define Age Categories")
-        st.sidebar.slider("Min Age for Jóvenes", min_value=0, max_value=100,  key='age_joven_min_slider')
-        st.sidebar.slider("Min Age for Adultos", min_value=0, max_value=100,  key='age_adult_min_slider')
-        st.sidebar.slider("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min_slider')
-        
-        #st.sidebar.title('Gráficos')
-        #st.sidebar.selectbox('Características usuarios', ['Edad', 'Género', 'Provincia', 'Fecha de generación de recomendación'], key='plot')
-        #st.sidebar.selectbox('Recomendaciones', ['Seguiste recomendaciones', 'Percepción de cambio'], key='plot')
-        #st.sidebar.selectbox("Exposición a la luz", ['Exposición luz natural', 'Exposición luz artificial'], key='plot')
-        st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
-        st.sidebar.checkbox("Mostrar datos", key='datos')
-       
-        
     def initialize_filters(self):
-    
         if 'datos' not in st.session_state:
-            st.session_state['datos'] = False
+            st.session_state['datos'] = True
             
         if 'age_range_slider' not in st.session_state:
             st.session_state['age_range_slider'] = [self.df['age'].min(), self.df['age'].max()]
@@ -151,24 +117,18 @@ class StreamLit:
 
         if 'df_selected' not in st.session_state:
             st.session_state['df_selected'] = self.df
+            
+        if 'age_joven_min' not in st.session_state: 
+            st.session_state['age_joven_min'] = 18
+            
+        if 'age_adult_min' not in st.session_state: 
+            st.session_state['age_adult_min'] = 30
+
+        if 'age_tercera_edad_min' not in st.session_state: 
+            st.session_state['age_tercera_edad_min'] = 60
 
         if 'recommendations_selectbox' not in st.session_state:
             st.session_state['recommendations_selectbox'] = 'Después'
-
-        if 'min_days_diff_input' not in st.session_state:
-            st.session_state['min_days_diff_input'] = 7
-
-        if 'max_days_diff_input' not in st.session_state:
-            st.session_state['max_days_diff_input'] = 30
-
-        if 'age_joven_min_slider' not in st.session_state:
-            st.session_state['age_joven_min_slider'] = 13
-
-        if 'age_adult_min_slider' not in st.session_state:
-            st.session_state['age_adult_min_slider'] = 40
-
-        if 'age_tercera_edad_min_slider' not in st.session_state:
-            st.session_state['age_tercera_edad_min_slider'] = 70
 
         if 'antes_despues' not in st.session_state:
             st.session_state['antes_despues'] = 'Antes'
@@ -187,9 +147,47 @@ class StreamLit:
 
         if 'all_recommendations_checkbox' not in st.session_state:
             st.session_state['all_recommendations_checkbox'] = True
-        
+
+
         if 'plot' not in st.session_state:
             st.session_state['plot'] = 'Edad'
+    def sidebar(self):
+        st.sidebar.header('Filter Options')
+        
+        st.sidebar.selectbox("Entrada Usuarios", options=["Entradas", "Usuarios"], key='entradas_usuarios_filter')
+            
+        st.sidebar.checkbox("All Dates",  key='all_dates_checkbox')
+        if not st.session_state['all_dates_checkbox']:
+            st.sidebar.date_input("Start Date", value=self.df['date_recepcion_data'].min(), key='start_date_input')
+            st.sidebar.date_input("End Date", value=self.df['date_recepcion_data'].max(), key='end_date_input')
+
+        st.sidebar.checkbox("All Ages", key='all_ages_checkbox')
+        if not st.session_state['all_ages_checkbox']:
+            st.sidebar.slider("Age Range", min_value=int(self.df['age'].min()),max_value=int(self.df['age'].max()),value=(int(self.df['age'].min()), int(self.df['age'].max())),key='age_range_slider')
+
+        st.sidebar.checkbox("All Genders",  key='all_genders_checkbox')
+        if not st.session_state['all_genders_checkbox']:
+            st.sidebar.selectbox("Select Gender", options=self.df['genero'].unique().tolist(), key='gender_selectbox')
+
+        st.sidebar.checkbox("All Recommendations", key='all_recommendations_checkbox')
+        if not st.session_state['all_recommendations_checkbox']:
+            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No','Ambas'], key='recommendations_selectbox')
+            min_days_diff = int(self.df['days_diff'].min())
+            max_days_diff = int(self.df['days_diff'].max())
+            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=10, key='min_days_diff_input')
+            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value=20, key='max_days_diff_input')
+            st.sidebar.selectbox("Antes Después", options=["Antes", "Después","Ambas"], key='ambas_antes_despues')
+
+        st.sidebar.subheader("Define Age Categories")
+        st.sidebar.number_input("Min Age for Jóvenes", min_value=0, max_value=100 ,key='age_joven_min')
+        st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100, key='age_adult_min')
+        st.sidebar.number_input("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min')
+
+
+        st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
+        st.sidebar.checkbox("Mostrar datos", key='datos')
+       
+        
 
         
 class Filters:
@@ -250,7 +248,6 @@ class Filters:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
-               
                         elif when_filter == 'Antes':
                             final_indices.append(idx - 1)
                         elif when_filter == 'Después':
@@ -259,9 +256,9 @@ class Filters:
         
     def categorize_age(self):
         def age_category(age):
-            if age < st.session_state['age_adult_min_slider']:
+            if age < st.session_state['age_adult_min']:
                 return 'Jóvenes'
-            elif age < st.session_state['age_tercera_edad_min_slider']:
+            elif age < st.session_state['age_tercera_edad_min']:
                 return 'Adultos'
             else:
                 return 'Tercera Edad'
@@ -273,7 +270,7 @@ class Filters:
             self.dates()
         if not st.session_state['all_ages_checkbox']:  
             self.ages()
-        if st.session_state['age_joven_min_slider'] or st.session_state['age_adult_min_slider'] or st.session_state['age_tercera_edad_min_slider'] :  
+        if st.session_state['age_joven_min'] or st.session_state['age_adult_min'] or st.session_state['age_tercera_edad_min'] :  
             self.categorize_age()
         if not st.session_state['all_genders_checkbox']:  
             self.genders()
@@ -307,7 +304,6 @@ class PlotGenerator:
         elif st.session_state['plot'] == 'Seguiste recomendaciones':
             self.value_counts_df = self.value_counts_df_RangoEtario = 'SEGUISTE_RECOMENDACIONES'
             self.pie_plot()
-            self.bar_plot()
             self.bar_plot()
         elif st.session_state['plot'] == 'Percepción de cambio': 
             self.value_counts_df = self.value_counts_df_RangoEtario = 'RECOMENDACIONES_AJUSTE'
@@ -360,36 +356,55 @@ class PlotGenerator:
         elif st.session_state['plot'] == 'Minutos dormir - Hábiles':
             self.bins = 24
             self.histo_plot()
+        elif st.session_state['plot'] == 'Hora despertar - Hábiles':
+            time = pd.to_datetime(self.df['HAB_Soffw'], format='%H:%M')
+            self.df['HAB_Soffw'] = time.dt.hour + time.dt.minute / 60
+            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
 
-    def pie_plot(self):
+    def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
         with col_2:
             fig, ax = plt.subplots(figsize=(8, 6))
-            colors = sns.color_palette("coolwarm", 3)  
             value_counts = self.df[self.value_counts_df].value_counts()
+            if st.session_state['plot'] == 'Edad':
+                colors = [custom_colors['Yellow_Adultos'],custom_colors['Green_Jóvenes'],custom_colors['Orange_TerceraEdad']]
+            else:
+                colors = color_palette
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('Proporción', fontsize=15)
             st.pyplot(fig)
-        
         col1, col2, col3 = st.columns(3)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
             value_counts = self.df_Jovenes[self.value_counts_df_RangoEtario].value_counts()
-            colors = sns.color_palette("coolwarm", len(value_counts))
+            if st.session_state['plot'] == 'Edad':
+                colors = [custom_colors['Purple_0'],custom_colors['Blue_1']]
+            else:
+                colors = color_palette
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('Proporción Jóvenes', fontsize=15)
             st.pyplot(fig)
         with col2:
             fig, ax = plt.subplots(figsize=(8, 6))
             value_counts = self.df_Adultos[self.value_counts_df_RangoEtario].value_counts()
-            colors = sns.color_palette("coolwarm", len(value_counts))
+            if st.session_state['plot'] == 'Edad':
+                colors = [custom_colors['Purple_0'],custom_colors['Blue_1']]
+            else:
+                colors = color_palette
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('Proporción Adultos', fontsize=15)
             st.pyplot(fig)
         with col3:
             fig, ax = plt.subplots(figsize=(8, 6))
             value_counts = self.df_TerceraEdad[self.value_counts_df_RangoEtario].value_counts()
-            colors = sns.color_palette("coolwarm", len(value_counts))
+            if st.session_state['plot'] == 'Edad':
+                colors = [custom_colors['Purple_0'],custom_colors['Blue_1']]
+            else:
+                colors = color_palette
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('Proporción Tercera Edad', fontsize=15)
             st.pyplot(fig)
@@ -397,58 +412,49 @@ class PlotGenerator:
     def temporal(self):
         palette = sns.color_palette("coolwarm", 3)
         col1, col2 = st.columns(2)
-
         with col1:
-            # Plot for the entire dataset
             self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
             self.df['month'] = self.df['date_recepcion_data'].dt.to_period('M')
             grouped_data = self.df.groupby('month').size().reset_index(name='count')
             grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
-
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data, x='month', y='count', color=palette[0], ax=ax)
+            sns.lineplot(data=grouped_data, x='month', y='count', color=custom_colors['Grey_all'], ax=ax)
             ax.set_title('Entradas por mes', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             plt.xticks(rotation=45)
             st.pyplot(fig)
 
-            # Plot for Jóvenes
             self.df_Jovenes['date_recepcion_data'] = pd.to_datetime(self.df_Jovenes['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
             self.df_Jovenes['month'] = self.df_Jovenes['date_recepcion_data'].dt.to_period('M')
             grouped_data_jovenes = self.df_Jovenes.groupby('month').size().reset_index(name='count')
             grouped_data_jovenes['month'] = grouped_data_jovenes['month'].dt.to_timestamp()
-
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_jovenes, x='month', y='count', color=palette[1], ax=ax)
+            sns.lineplot(data=grouped_data_jovenes, x='month', y='count', color=custom_colors['Green_Jóvenes'], ax=ax)
             ax.set_title('Entradas por mes - Jóvenes', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             plt.xticks(rotation=45)
             st.pyplot(fig)
-
-            # Plot for Adultos
             self.df_Adultos['date_recepcion_data'] = pd.to_datetime(self.df_Adultos['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
             self.df_Adultos['month'] = self.df_Adultos['date_recepcion_data'].dt.to_period('M')
             grouped_data_adultos = self.df_Adultos.groupby('month').size().reset_index(name='count')
             grouped_data_adultos['month'] = grouped_data_adultos['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_adultos, x='month', y='count', color=palette[2], ax=ax)
+            sns.lineplot(data=grouped_data_adultos, x='month', y='count', color=custom_colors['Yellow_Adultos'], ax=ax)
             ax.set_title('Entradas por mes - Adultos', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             plt.xticks(rotation=45)
             st.pyplot(fig)
-
-            # Plot for Tercera Edad
+            
             self.df_TerceraEdad['date_recepcion_data'] = pd.to_datetime(self.df_TerceraEdad['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
             self.df_TerceraEdad['month'] = self.df_TerceraEdad['date_recepcion_data'].dt.to_period('M')
             grouped_data_tercera = self.df_TerceraEdad.groupby('month').size().reset_index(name='count')
             grouped_data_tercera['month'] = grouped_data_tercera['month'].dt.to_timestamp()
-
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_tercera, x='month', y='count', color=palette[0], ax=ax)
+            sns.lineplot(data=grouped_data_tercera, x='month', y='count', color=custom_colors['Orange_TerceraEdad'], ax=ax)
             ax.set_title('Entradas por mes - Tercera Edad', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -461,7 +467,7 @@ class PlotGenerator:
             grouped_data_gender['month'] = grouped_data_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            sns.lineplot(data=grouped_data_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title('Entradas por mes por género', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -473,7 +479,7 @@ class PlotGenerator:
             grouped_data_jovenes_gender['month'] = grouped_data_jovenes_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_jovenes_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            sns.lineplot(data=grouped_data_jovenes_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title('Entradas por mes por género - Jóvenes', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -485,7 +491,7 @@ class PlotGenerator:
             grouped_data_adultos_gender['month'] = grouped_data_adultos_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_adultos_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            sns.lineplot(data=grouped_data_adultos_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title('Entradas por mes por género - Adultos', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -497,40 +503,40 @@ class PlotGenerator:
             grouped_data_tercera_gender['month'] = grouped_data_tercera_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_tercera_gender, x='month', y='count', hue='genero', ax=ax, palette='coolwarm')
+            sns.lineplot(data=grouped_data_tercera_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title('Entradas por mes por género - T. Edad', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             plt.xticks(rotation=45)
             st.pyplot(fig)
-
+ 
     def histo_plot(self):
         palette = sns.color_palette("coolwarm", 3)  
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[0])
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Grey_all'])
             ax.set_title(st.session_state['plot'], fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[1])
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Green_Jóvenes'])
             ax.set_title(f"{st.session_state['plot']} Jóvenes", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[2])
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Yellow_Adultos'])
             ax.set_title(f"{st.session_state['plot']} Adultos", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=palette[0])
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Orange_TerceraEdad'])
             ax.set_title(f"{st.session_state['plot']} Tercera Edad", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -538,93 +544,91 @@ class PlotGenerator:
 
         with col2:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax,palette = [custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title(f"{st.session_state['plot']} Género ", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title(f"{st.session_state['plot']} Género - Jóvenes", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title(f"{st.session_state['plot']} Género - Adultos", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette='coolwarm')
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
             ax.set_title(f"{st.session_state['plot']} Género - T Edad", fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
-                
+         
     def bar_plot(self):
         col1, col2 = st.columns(2)
-        
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Grey_all'])
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
                         
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Green_Jóvenes'])
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue')
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Orange_TerceraEdad'])
             ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)   
         with col2:   
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color='skyblue', hue='genero')
+            sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
-   
 
     def box_plot(self):
         # Convert `HAB_Hora_acostar` to decimal hours
@@ -676,12 +680,13 @@ def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv','Data/Geo.csv')
     
+
     streamlit_app = StreamLit(df_all)
     streamlit_app.sidebar()
-    
     filters = Filters(df_all)
     df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
+
     
     column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
