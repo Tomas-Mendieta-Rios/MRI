@@ -16,7 +16,6 @@ custom_colors = {
     'Yellow_Adultos': '#EADF6E',
     'Orange_TerceraEdad': '#F0A154'
 }
-
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
     'Edad': 'age',
@@ -83,7 +82,6 @@ exposicion_luz = {'Exposición luz natural':'FOTICO_luz_natural_8_15_integrada',
 plot_sleep = {'Horario de acostarse': 'HAB_Hora_acostar', 'Horario decidir dormir':'HAB_Hora_decidir', 'Minutos dormir': 'HAB_min_dormir', 'Hora Despertarse': 'HAB_Soffw'}
 
 class DataLoader: 
-    
     def __init__(self):
         self.df_all = pd.DataFrame()
         
@@ -91,20 +89,22 @@ class DataLoader:
         df_before = pd.read_csv(before_path)
         df_after = pd.read_csv(after_path)
         df_geo = pd.read_csv(geo_path,sep=';')
-
         self.df_all = pd.concat([df_before, df_after], ignore_index=True)
         self.df_all['date_recepcion_data'] = pd.to_datetime(self.df_all['date_recepcion_data'])
         self.df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
         self.df_all.reset_index(drop=True, inplace=True)
         self.df_all['days_diff'] = self.df_all.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
         self.df_all = pd.merge(self.df_all, df_geo, how='left', on='provincia')
-
+        
         return self.df_all
+    
+    
 
 class StreamLit:
     def __init__(self,df):
         self.df = df
         self.initialize_filters()
+    
     def initialize_filters(self):
         if 'datos' not in st.session_state:
             st.session_state['datos'] = True
@@ -148,9 +148,10 @@ class StreamLit:
         if 'all_recommendations_checkbox' not in st.session_state:
             st.session_state['all_recommendations_checkbox'] = True
 
-
         if 'plot' not in st.session_state:
             st.session_state['plot'] = 'Edad'
+
+   
     def sidebar(self):
         st.sidebar.header('Filter Options')
         
@@ -183,7 +184,6 @@ class StreamLit:
         st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100, key='age_adult_min')
         st.sidebar.number_input("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min')
 
-
         st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
         if 'datos' not in st.session_state:
             st.session_state['datos'] = True
@@ -192,8 +192,7 @@ class StreamLit:
 class Filters:
     def __init__(self,df):
         self.df_all = df
-        self.result = df
-    
+        
     def entries_users(self):
         self.result = self.result.drop_duplicates(subset='user_id', keep='last')
     
@@ -679,14 +678,12 @@ def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv','Data/Geo.csv')
     
-
     streamlit_app = StreamLit(df_all)
     streamlit_app.sidebar()
     filters = Filters(df_all)
     df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
 
-    
     column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     df_filtered = df_filtered[column_order]
