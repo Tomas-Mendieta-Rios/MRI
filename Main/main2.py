@@ -74,75 +74,23 @@ data_dictionary = {
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
 
-keys = list(data_dictionary.keys())
-
-if 'amin_days_diff_input' not in st.session_state:
-    st.session_state['min_days_diff_input'] = 10
-if 'max_days_diff_input' not in st.session_state:
-    st.session_state['max_days_diff_input'] = 30
-    
-days_min = st.session_state['min_days_diff_input']
-days_max = st.session_state['max_days_diff_input']
-
 class DataLoader: 
     def __init__(self):
-        self.df = pd.DataFrame()
-
+        self.df_all = pd.DataFrame()
+        
     def load_data(self, before_path, after_path, geo_path):
-        # Load the data
         df_before = pd.read_csv(before_path)
         df_after = pd.read_csv(after_path)
-        df_geo = pd.read_csv(geo_path, sep=';')
+        df_geo = pd.read_csv(geo_path,sep=';')
+        self.df_all = pd.concat([df_before, df_after], ignore_index=True)
+        self.df_all['date_recepcion_data'] = pd.to_datetime(self.df_all['date_recepcion_data'])
+        self.df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
+        self.df_all.reset_index(drop=True, inplace=True)
+        self.df_all['days_diff'] = self.df_all.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
+        self.df_all = pd.merge(self.df_all, df_geo, how='left', on='provincia')
         
-        # Combine the dataframes
-        self.df = pd.concat([df_before, df_after], ignore_index=True)
-        self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'])
-        
-        # Sort and reset index
-        self.df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
-        self.df.reset_index(drop=True, inplace=True)
-        
-        # Calculate days_diff
-        self.df['days_diff'] = self.df.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
-        
-        # Merge with geo data
-        self.df = pd.merge(self.df, df_geo, how='left', on='provincia')
-        
-        # Return the prepared dataframe
-        return self.df
-
-class SubData:
-    def __init__(self):
-        self.df = pd.DataFrame()
-        
-    def sub_df(self, df):
-        self.df = df
-                
-        # Initialize lists to collect indices for the four subsets
-        indices_si_antes, indices_si_despues, indices_no_antes, indices_no_despues = [], [], [], []
-
-        # Iterate through the dataframe and collect indices based on the conditions
-        for idx in range(1, len(self.df)):
-            if self.df.loc[idx - 1, 'user_id'] == self.df.loc[idx, 'user_id']:
-                days_diff = self.df.loc[idx, 'days_diff']
-                if days_min <= days_diff <= days_max:
-                    if self.df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
-                        indices_si_antes.append(idx - 1)
-                        indices_si_despues.append(idx)
-                    elif self.df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
-                        indices_no_antes.append(idx - 1)
-                        indices_no_despues.append(idx)
-
-        # Create the four subsets as dataframes
-        self.df_si_antes = self.df.loc[indices_si_antes].reset_index(drop=True)
-        self.df_si_despues = self.df.loc[indices_si_despues].reset_index(drop=True)
-        self.df_no_antes = self.df.loc[indices_no_antes].reset_index(drop=True)
-        self.df_no_despues = self.df.loc[indices_no_despues].reset_index(drop=True)
-        
-        # Return the four dataframes
-        return self.df_si_antes, self.df_si_despues, self.df_no_antes, self.df_no_despues
-
-        
+        return self.df_all
+    
 class StreamLit:
     def __init__(self,df):
         self.df = df
@@ -157,6 +105,9 @@ class StreamLit:
 
         if 'selected_gender' not in st.session_state:
             st.session_state['selected_gender'] = 'All'
+
+        if 'df_selected' not in st.session_state:
+            st.session_state['df_selected'] = self.df
             
         if 'age_joven_min' not in st.session_state: 
             st.session_state['age_joven_min'] = 18
@@ -212,10 +163,12 @@ class StreamLit:
 
         st.sidebar.checkbox("All Recommendations", key='all_recommendations_checkbox')
         if not st.session_state['all_recommendations_checkbox']:
-            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No','Ambas'], key='recommendations_selectbox')
-            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=10, key='min_days_diff_input')
-            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value=20, key='max_days_diff_input')
-            st.sidebar.selectbox("Antes Después", options=["Antes", "Después","Ambas"], key='ambas_antes_despues')
+            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No'], key='recommendations_selectbox')
+            min_days_diff = int(self.df['days_diff'].min())
+            max_days_diff = int(self.df['days_diff'].max())
+            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000,  key='min_days_diff_input')
+            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000,  key='max_days_diff_input')
+            st.sidebar.selectbox("Antes Después", options=["Antes", "Después"], key='ambas_antes_despues')
 
         st.sidebar.subheader("Define Age Categories")
         st.sidebar.number_input("Min Age for Jóvenes", min_value=0, max_value=100 ,key='age_joven_min')
@@ -230,6 +183,7 @@ class StreamLit:
 class Filters:
     def __init__(self,df):
         self.df_all = df
+        self.result = df 
         
     def entries_users(self):
         self.result = self.result.drop_duplicates(subset='user_id', keep='last')
@@ -245,6 +199,50 @@ class Filters:
     
     def genders(self):
         self.result = self.result[self.result['genero'] == st.session_state['gender_selectbox']]
+        
+    def recomendations(self):
+        days_min = st.session_state['min_days_diff_input']
+        days_max = st.session_state['max_days_diff_input']
+        rec_filter = st.session_state['recommendations_selectbox']
+        when_filter = st.session_state['ambas_antes_despues']
+
+        self.result = self.result.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+        self.result = self.result.reset_index(drop=True)
+        final_indices = []
+        antes_despues_labels = []
+
+        for idx in range(1, len(self.result)):
+            if self.result.loc[idx - 1, 'user_id'] == self.result.loc[idx, 'user_id']:
+                if rec_filter == 'Ambas':
+                    if self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
+                        if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
+                            if when_filter == 'Ambas':
+                                final_indices.append(idx - 1)
+                                final_indices.append(idx)
+                            elif when_filter == 'Antes':
+                                final_indices.append(idx - 1)
+                            elif when_filter == 'Después':
+                                final_indices.append(idx)
+                elif rec_filter == 'Si' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
+                    if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
+                        if when_filter == 'Ambas':
+                            final_indices.append(idx - 1)
+                            final_indices.append(idx)
+                        elif when_filter == 'Antes':
+                            final_indices.append(idx - 1)
+                            antes_despues_labels.append('Antes')
+                        elif when_filter == 'Después':
+                            final_indices.append(idx)
+                elif rec_filter == 'No' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
+                    if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
+                        if when_filter == 'Ambas':
+                            final_indices.append(idx - 1)
+                            final_indices.append(idx)
+                        elif when_filter == 'Antes':
+                            final_indices.append(idx - 1)
+                        elif when_filter == 'Después':
+                            final_indices.append(idx)
+        self.result = self.result.loc[final_indices].reset_index(drop=True)
         
     def categorize_age(self):
         def age_category(age):
@@ -286,6 +284,9 @@ class PlotGenerator:
         if st.session_state['plot'] == 'Fecha de recepción de datos':
             self.temporal()
         elif st.session_state['plot'] == 'Edad':
+            filters = Filters(self.df)
+            filters.entries_users() 
+            self.df = filters.result
             self.bins = 20
             self.value_counts_df = 'age_category'
             self.value_counts_df_RangoEtario = 'genero'
@@ -673,11 +674,8 @@ def main():
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv','Data/Geo.csv')
     
     streamlit_app = StreamLit(df_all)
-    data_splitter = SubData()
-    df_si_antes, df_si_despues, df_no_antes, df_no_despues = data_splitter.sub_df(df_all)
     streamlit_app.sidebar()
     filters = Filters(df_all)
-    
     df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
 

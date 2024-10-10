@@ -32,7 +32,7 @@ data_dictionary = {
     'Horario decidir dormir - Hábiles': 'HAB_Hora_decidir',
     'Minutos dormir - Hábiles': 'HAB_min_dormir',
     'Hora despertar - Hábiles': 'HAB_Soffw',
-    'Alarma no fotica (sí/no)': 'NOFOTICO_HAB_alarma_si_no',
+    'Alarma - Hábiles': 'NOFOTICO_HAB_alarma_si_no',
     'Siesta habitual integrada': 'HAB_siesta_integrada',
     'Calidad de sueño habitual': 'HAB_calidad',
     'Horario de acostarse (libre)': 'LIB_Hora_acostar',
@@ -73,13 +73,6 @@ data_dictionary = {
     'Desviación de jet lag social': 'SJL',
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
-
-keys = list(data_dictionary.keys())
-
-caracteristicas = {'Edad':'age', 'Genero':'genero', 'Ubicación': 'provincia', 'Fecha' : 'date_generacion_recomendacion'}
-recomendaciones = {'Seguiste recomendaciones': 'SEGUISTE_RECOMENDACIONES', 'Percepción de cambio':'RECOMENDACIONES_AJUSTE'}
-exposicion_luz = {'Exposición luz natural':'FOTICO_luz_natural_8_15_integrada','Exposición luz artifical':'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'}
-plot_sleep = {'Horario de acostarse': 'HAB_Hora_acostar', 'Horario decidir dormir':'HAB_Hora_decidir', 'Minutos dormir': 'HAB_min_dormir', 'Hora Despertarse': 'HAB_Soffw'}
 
 class DataLoader: 
     def __init__(self):
@@ -126,7 +119,7 @@ class StreamLit:
             st.session_state['age_tercera_edad_min'] = 60
 
         if 'recommendations_selectbox' not in st.session_state:
-            st.session_state['recommendations_selectbox'] = 'Después'
+            st.session_state['recommendations_selectbox'] = 'Si'
 
         if 'antes_despues' not in st.session_state:
             st.session_state['antes_despues'] = 'Antes'
@@ -144,7 +137,13 @@ class StreamLit:
             st.session_state['all_genders_checkbox'] = True
 
         if 'all_recommendations_checkbox' not in st.session_state:
-            st.session_state['all_recommendations_checkbox'] = True
+           st.session_state['all_recommendations_checkbox'] = True
+           
+        if 'min_days_diff_input' not in st.session_state:
+           st.session_state['min_days_diff_input'] = 10
+       
+        if 'max_days_diff_input' not in st.session_state:
+           st.session_state['max_days_diff_input'] = 20
 
         if 'plot' not in st.session_state:
             st.session_state['plot'] = 'Edad'
@@ -170,12 +169,12 @@ class StreamLit:
 
         st.sidebar.checkbox("All Recommendations", key='all_recommendations_checkbox')
         if not st.session_state['all_recommendations_checkbox']:
-            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No','Ambas'], key='recommendations_selectbox')
+            st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No',"Ambas"], key='recommendations_selectbox')
             min_days_diff = int(self.df['days_diff'].min())
             max_days_diff = int(self.df['days_diff'].max())
-            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=10, key='min_days_diff_input')
-            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value=20, key='max_days_diff_input')
-            st.sidebar.selectbox("Antes Después", options=["Antes", "Después","Ambas"], key='ambas_antes_despues')
+            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000,  key='min_days_diff_input')
+            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000,  key='max_days_diff_input')
+            st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas"], key='ambas_antes_despues')
 
         st.sidebar.subheader("Define Age Categories")
         st.sidebar.number_input("Min Age for Jóvenes", min_value=0, max_value=100 ,key='age_joven_min')
@@ -215,8 +214,6 @@ class Filters:
         self.result = self.result.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
         self.result = self.result.reset_index(drop=True)
         final_indices = []
-        antes_despues_labels = []
-
         for idx in range(1, len(self.result)):
             if self.result.loc[idx - 1, 'user_id'] == self.result.loc[idx, 'user_id']:
                 if rec_filter == 'Ambas':
@@ -236,7 +233,6 @@ class Filters:
                             final_indices.append(idx)
                         elif when_filter == 'Antes':
                             final_indices.append(idx - 1)
-                            antes_despues_labels.append('Antes')
                         elif when_filter == 'Después':
                             final_indices.append(idx)
                 elif rec_filter == 'No' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
@@ -270,7 +266,7 @@ class Filters:
             self.categorize_age()
         if not st.session_state['all_genders_checkbox']:  
             self.genders()
-        if not st.session_state['all_recommendations_checkbox']:  
+        if  st.session_state['all_recommendations_checkbox'] == False:  
             self.recomendations()
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
             self.entries_users()
@@ -360,6 +356,11 @@ class PlotGenerator:
             self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
+        elif st.session_state['plot'] == 'Alarma - Hábiles':
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_HAB_alarma_si_no'
+            self.pie_plot()
+            self.bar_plot()
+            
 
     def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
@@ -679,6 +680,7 @@ def main():
     streamlit_app = StreamLit(df_all)
     streamlit_app.sidebar()
     filters = Filters(df_all)
+    
     df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
 
@@ -689,6 +691,7 @@ def main():
    
     df_all = df_all[column_order_df_all]
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+    
     if st.session_state['datos'] == True:
         st.write('df_all')
         st.write(f'Cantidad de usuarios: {len(df_all)}')  
