@@ -34,12 +34,12 @@ data_dictionary = {
     'Hora despertar - Hábiles': 'HAB_Soffw',
     'Alarma - Hábiles': 'NOFOTICO_HAB_alarma_si_no',
     'Siesta habitual integrada': 'HAB_siesta_integrada',
-    'Calidad de sueño habitual': 'HAB_calidad',
-    'Horario de acostarse (libre)': 'LIB_Hora_acostar',
-    'Horario decidir dormir (libre)': 'LIB_Hora_decidir',
-    'Minutos dormir (libre)': 'LIB_min_dormir',
-    'Hora despertar (libre)': 'LIB_Offf',
-    'Alarma libre (sí/no)': 'LIB_alarma_si_no',
+    'Calidad de sueño - Hábiles': 'HAB_calidad',
+    'Horario de acostarse - Libres': 'LIB_Hora_acostar',
+    'Horario decidir dormir - Libres': 'LIB_Hora_decidir',
+    'Minutos dormir - Libres': 'LIB_min_dormir',
+    'Hora despertar - Libres': 'LIB_Offf',
+    'Alarma - Libres': 'LIB_alarma_si_no',
     'MEQ Pregunta 1': 'MEQ1',
     'MEQ Pregunta 2': 'MEQ2',
     'MEQ Pregunta 3': 'MEQ3',
@@ -139,12 +139,6 @@ class StreamLit:
         if 'all_recommendations_checkbox' not in st.session_state:
            st.session_state['all_recommendations_checkbox'] = True
            
-        if 'min_days_diff_input' not in st.session_state:
-           st.session_state['min_days_diff_input'] = 10
-       
-        if 'max_days_diff_input' not in st.session_state:
-           st.session_state['max_days_diff_input'] = 20
-
         if 'plot' not in st.session_state:
             st.session_state['plot'] = 'Edad'
 
@@ -172,8 +166,8 @@ class StreamLit:
             st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No',"Ambas"], key='recommendations_selectbox')
             min_days_diff = int(self.df['days_diff'].min())
             max_days_diff = int(self.df['days_diff'].max())
-            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000,  key='min_days_diff_input')
-            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000,  key='max_days_diff_input')
+            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=7,  key='min_days_diff_input')
+            st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value = 30,  key='max_days_diff_input')
             st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas"], key='ambas_antes_despues')
 
         st.sidebar.subheader("Define Age Categories")
@@ -360,7 +354,78 @@ class PlotGenerator:
             self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_HAB_alarma_si_no'
             self.pie_plot()
             self.bar_plot()
-            
+        elif st.session_state['plot'] == 'Siesta habitual integrada':
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'HAB_siesta_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == 'Calidad de sueño - Hábiles':
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'HAB_calidad'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == 'Horario de acostarse - Libre':
+            time = pd.to_datetime(self.df['LIB_Hora_acostar'], format='%H:%M')
+            self.df['LIB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
+            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Horario decidir dormir - Libres':
+            time = pd.to_datetime(self.df['LIB_Hora_decidir'], format='%H:%M')
+            self.df['LIB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
+            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Minutos dormir - Libres':
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Hora despertar - Libres':
+            time = pd.to_datetime(self.df['LIB_Offf'], format='%H:%M')
+            self.df['LIB_Offf'] = time.dt.hour + time.dt.minute / 60
+            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Alarma - Libres':
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'LIB_alarma_si_no'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Alarma no fotica (sí/no)":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_HAB_alarma_si_no'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Luz natural (8-15)":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_FOTICO_luz_natural_8_15_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Luz artificial (8-15)":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Estudios no foticos integrados":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_estudios_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Trabajo no fotico integrado":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_trabajo_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Otra actividad habitual no fotica (sí/no)":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_otra_actividad_habitual_si_no'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Cena no fotica integrada":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_cena_integrada'
+            self.pie_plot()
+            self.bar_plot()
+        elif st.session_state['plot'] == "Recomendación - Siesta habitual integrada":
+            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_HAB_siesta_integrada'
+            self.pie_plot()
+            self.bar_plot()
+
 
     def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
