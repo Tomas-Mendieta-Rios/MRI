@@ -76,21 +76,26 @@ data_dictionary = {
 
 class DataLoader: 
     def __init__(self):
-        self.df_all = pd.DataFrame()
+        self.df = pd.DataFrame()
         
     def load_data(self, before_path, after_path, geo_path):
         df_before = pd.read_csv(before_path)
         df_after = pd.read_csv(after_path)
         df_geo = pd.read_csv(geo_path,sep=';')
-        self.df_all = pd.concat([df_before, df_after], ignore_index=True)
-        self.df_all['date_recepcion_data'] = pd.to_datetime(self.df_all['date_recepcion_data'])
-        self.df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
-        self.df_all.reset_index(drop=True, inplace=True)
-        self.df_all['days_diff'] = self.df_all.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
-        self.df_all = pd.merge(self.df_all, df_geo, how='left', on='provincia')
-        
-        return self.df_all
-    
+        self.df = pd.concat([df_before, df_after], ignore_index=True)
+        self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'])
+        self.df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True], inplace=True)
+        self.df.reset_index(drop=True, inplace=True)
+        self.df['days_diff'] = self.df.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
+        self.df = pd.merge(self.df, df_geo, how='left', on='provincia')
+        columns_to_fix = ['rec_NOFOTICO_HAB_alarma_si_no','rec_FOTICO_luz_natural_8_15_integrada','rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada','rec_NOFOTICO_trabajo_integrada','rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada','rec_HAB_siesta_integrada']
+        self.df[columns_to_fix] = self.df[columns_to_fix].fillna('None').astype(str)
+        return self.df
+
+class Df:
+    def __init__(self,df):
+        self.df = df
+
 class StreamLit:
     def __init__(self,df):
         self.df = df
@@ -141,7 +146,12 @@ class StreamLit:
            
         if 'plot' not in st.session_state:
             st.session_state['plot'] = 'Edad'
-
+            
+        if 'min_days_diff_input' not in st.session_state:
+            st.session_state['min_days_diff_input'] = 10
+        
+        if 'max_days_diff_input' not in st.session_state:
+            st.session_state['max_days_diff_input'] = 30
    
     def sidebar(self):
         st.sidebar.header('Filter Options')
@@ -166,7 +176,7 @@ class StreamLit:
             st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No',"Ambas"], key='recommendations_selectbox')
             min_days_diff = int(self.df['days_diff'].min())
             max_days_diff = int(self.df['days_diff'].max())
-            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=7,  key='min_days_diff_input')
+            st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=10,  key='min_days_diff_input')
             st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value = 30,  key='max_days_diff_input')
             st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas"], key='ambas_antes_despues')
 
@@ -181,38 +191,37 @@ class StreamLit:
         st.sidebar.checkbox("Mostrar datos", key='datos')
         
 class Filters:
-    def __init__(self,df):
-        self.df_all = df
-        
-    def entries_users(self):
-        self.result = self.result.drop_duplicates(subset='user_id', keep='last')
-    
-    def dates(self):
+    def __init__(self, df):
+        self.df = df
+        self.result = pd.DataFrame()
+        self.result_antes = pd.DataFrame()
+        self.result_despues = pd.DataFrame()
+
+    def entries_users(self, df):
+        return df.drop_duplicates(subset='user_id', keep='last')
+
+    def dates(self, df):
         date_min = pd.to_datetime(st.session_state['start_date_input'])
         date_max = pd.to_datetime(st.session_state['end_date_input'])
-        self.result = self.result[(self.result['date_recepcion_data'] >= date_min) & (self.result['date_recepcion_data'] <= date_max +  pd.Timedelta(days=1))] 
-   
-    def ages(self):
-        age_min, age_max = st.session_state['age_range_slider']
-        self.result =  self.result[(self.result['age'] >= age_min) & (self.result['age'] <= age_max)]   
-    
-    def genders(self):
-        self.result = self.result[self.result['genero'] == st.session_state['gender_selectbox']]
-        
-    def recomendations(self):
-        days_min = st.session_state['min_days_diff_input']
-        days_max = st.session_state['max_days_diff_input']
-        rec_filter = st.session_state['recommendations_selectbox']
-        when_filter = st.session_state['ambas_antes_despues']
+        return df[(df['date_recepcion_data'] >= date_min) & (df['date_recepcion_data'] <= date_max + pd.Timedelta(days=1))]
 
-        self.result = self.result.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-        self.result = self.result.reset_index(drop=True)
+    def ages(self, df):
+        age_min, age_max = st.session_state['age_range_slider']
+        return df[(df['age'] >= age_min) & (df['age'] <= age_max)]
+
+    def genders(self, df):
+        return df[df['genero'] == st.session_state['gender_selectbox']]
+
+    def recomendations(self, df,days_min, days_max, rec_filter,when_filter):
+
+        df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+        df = df.reset_index(drop=True)
         final_indices = []
-        for idx in range(1, len(self.result)):
-            if self.result.loc[idx - 1, 'user_id'] == self.result.loc[idx, 'user_id']:
+        for idx in range(1, len(df)):
+            if df.loc[idx - 1, 'user_id'] == df.loc[idx, 'user_id']:
                 if rec_filter == 'Ambas':
-                    if self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
-                        if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
+                    if df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
+                        if days_min <= df.loc[idx, 'days_diff'] <= days_max:
                             if when_filter == 'Ambas':
                                 final_indices.append(idx - 1)
                                 final_indices.append(idx)
@@ -220,8 +229,8 @@ class Filters:
                                 final_indices.append(idx - 1)
                             elif when_filter == 'Después':
                                 final_indices.append(idx)
-                elif rec_filter == 'Si' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
-                    if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
+                elif rec_filter == 'Si' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
+                    if days_min <= df.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
@@ -229,8 +238,8 @@ class Filters:
                             final_indices.append(idx - 1)
                         elif when_filter == 'Después':
                             final_indices.append(idx)
-                elif rec_filter == 'No' and self.result.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
-                    if days_min <= self.result.loc[idx, 'days_diff'] <= days_max:
+                elif rec_filter == 'No' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
+                    if days_min <= df.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
                             final_indices.append(idx - 1)
                             final_indices.append(idx)
@@ -238,9 +247,9 @@ class Filters:
                             final_indices.append(idx - 1)
                         elif when_filter == 'Después':
                             final_indices.append(idx)
-        self.result = self.result.loc[final_indices].reset_index(drop=True)
-        
-    def categorize_age(self):
+        return df.loc[final_indices].reset_index(drop=True)
+
+    def categorize_age(self, df):
         def age_category(age):
             if age < st.session_state['age_adult_min']:
                 return 'Jóvenes'
@@ -248,27 +257,51 @@ class Filters:
                 return 'Adultos'
             else:
                 return 'Tercera Edad'
-        self.result['age_category'] = self.result['age'].apply(age_category)
+        df['age_category'] = df['age'].apply(age_category)
+        return df
 
     def choose_filter(self):
-        self.result = self.df_all
+        self.result = self.df
+        self.result_antes = self.df
+        self.result_despues = self.df
+
         if not st.session_state['all_dates_checkbox']:  
-            self.dates()
+            self.result = self.dates(self.result)
+            self.result_antes = self.dates(self.result_antes)
+            self.result_despues = self.dates(self.result_despues)
+
         if not st.session_state['all_ages_checkbox']:  
-            self.ages()
-        if st.session_state['age_joven_min'] or st.session_state['age_adult_min'] or st.session_state['age_tercera_edad_min'] :  
-            self.categorize_age()
+            self.result = self.ages(self.result)
+            self.result_antes = self.ages(self.result_antes)
+            self.result_despues = self.ages(self.result_despues)
+
+        if st.session_state['age_joven_min'] or st.session_state['age_adult_min'] or st.session_state['age_tercera_edad_min']:  
+            self.result = self.categorize_age(self.result)
+            self.result_antes = self.categorize_age(self.result_antes)
+            self.result_despues = self.categorize_age(self.result_despues)
+
         if not st.session_state['all_genders_checkbox']:  
-            self.genders()
-        if  st.session_state['all_recommendations_checkbox'] == False:  
-            self.recomendations()
+            self.result = self.genders(self.result)
+            self.result_antes = self.genders(self.result_antes)
+            self.result_despues = self.genders(self.result_despues)
+
+        if not st.session_state['all_recommendations_checkbox']:  
+            self.result = self.recomendations(self.result, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = st.session_state['ambas_antes_despues'])
+            
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
-            self.entries_users()
-        return self.result
+            self.result = self.entries_users(self.result)
+            self.result_antes = self.entries_users(self.result_antes)
+            self.result_despues = self.entries_users(self.result_despues)
+        self.result_antes = self.recomendations(self.result_antes, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Antes' )
+        self.result_despues = self.recomendations(self.result_despues, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Después' )
+
+
 
 class PlotGenerator:
-    def __init__(self,df):
+    def __init__(self,df,df_filtered_antes,df_filtered_despues):
         self.df = df
+        self.df_filtered_antes = df_filtered_antes
+        self.df_filtered_despues = df_filtered_despues
         self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
         self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
         self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
@@ -425,8 +458,6 @@ class PlotGenerator:
             self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_HAB_siesta_integrada'
             self.pie_plot()
             self.bar_plot()
-
-
     def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
         with col_2:
@@ -470,6 +501,41 @@ class PlotGenerator:
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('Proporción Tercera Edad', fontsize=15)
             st.pyplot(fig)
+
+    
+
+            # Count occurrences of each category in both DataFrames
+            value_counts1 = self.df_filtered_antes['rec_NOFOTICO_estudios_integrada'].value_counts()
+            value_counts2 = self.df_filtered_despues['rec_NOFOTICO_estudios_integrada'].value_counts()  # Adjust for the second DataFrame
+
+            # Create a bar plot
+            fig, ax = plt.subplots()
+
+            # Define bar width and positions
+            bar_width = 0.4
+            indices1 = np.arange(len(value_counts1.index))  # positions for DataFrame 1
+            indices2 = indices1 + bar_width  # positions for DataFrame 2
+
+            # Bar plot for the first DataFrame
+            sns.barplot(x=indices1, y=value_counts1.values, ax=ax, color='blue', alpha=0.6, label='DataFrame 1')
+
+            # Bar plot for the second DataFrame
+            sns.barplot(x=indices2, y=value_counts2.values, ax=ax, color='orange', alpha=0.6, label='DataFrame 2')
+
+            # Set x-ticks to be the center of the grouped bars
+            ax.set_xticks(indices1 + bar_width / 2)
+            ax.set_xticklabels(value_counts1.index)
+
+            # Add titles and labels
+            ax.set_title('Overlapping Value Counts')
+            ax.set_xlabel('Category')
+            ax.set_ylabel('Count')
+            ax.legend()
+
+            # Display the plot in Streamlit
+            st.pyplot(fig)
+
+
             
     def temporal(self):
         palette = sns.color_palette("coolwarm", 3)
@@ -745,17 +811,25 @@ def main():
     streamlit_app = StreamLit(df_all)
     streamlit_app.sidebar()
     filters = Filters(df_all)
+    filters.choose_filter()  
     
-    df_filtered = filters.choose_filter()  
     df_filtered = filters.result  
+    df_filtered_antes = filters.result_antes
+    df_filtered_despues = filters.result_despues
 
     column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
-    df_filtered = df_filtered[column_order]
-    df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-   
+    
     df_all = df_all[column_order_df_all]
+    df_filtered = df_filtered[column_order]
+    df_filtered_antes = df_filtered_antes[column_order]
+    df_filtered_despues = df_filtered_despues[column_order]
+    
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+    df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+    df_filtered_antes = df_filtered_antes.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+    df_filtered_despues = df_filtered_despues.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+   
     
     if st.session_state['datos'] == True:
         st.write('df_all')
@@ -765,15 +839,22 @@ def main():
         st.write('Data filtrada')
         st.write(f'Cantidad de usuarios: {len(df_filtered)}')  
         st.write(df_filtered)
+        
+        st.write('Data filtrada Antes')
+        st.write(f'Cantidad de usuarios: {len(df_filtered_antes)}')
+        st.write(df_filtered_antes)
 
-    plot_generator = PlotGenerator(df_filtered)
+        st.write('Data filtrada Después')
+        st.write(f'Cantidad de usuarios: {len(df_filtered_despues)}')
+        st.write(df_filtered_despues)
+
+    plot_generator = PlotGenerator(df_filtered, df_filtered_antes, df_filtered_despues)
     plot_generator.choose_plot()
 
 main()
 
 
+
+
+
 #streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main.py'
-
-
-
-
