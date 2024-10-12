@@ -302,9 +302,22 @@ class PlotGenerator:
         self.df = df
         self.df_filtered_antes = df_filtered_antes
         self.df_filtered_despues = df_filtered_despues
+
+        # Filter 'Jóvenes' in different DataFrames
         self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
+        self.df_filtered_antes_Jovenes = self.df_filtered_antes.loc[self.df_filtered_antes['age_category'] == 'Jóvenes']
+        self.df_filtered_despues_Jovenes = self.df_filtered_despues.loc[self.df_filtered_despues['age_category'] == 'Jóvenes']
+
+        # Filter 'Adultos' in different DataFrames
         self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
+        self.df_filtered_antes_Adultos = self.df_filtered_antes.loc[self.df_filtered_antes['age_category'] == 'Adultos']
+        self.df_filtered_despues_Adultos = self.df_filtered_despues.loc[self.df_filtered_despues['age_category'] == 'Adultos']
+
+        # Filter 'Tercera Edad' in different DataFrames
         self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
+        self.df_filtered_antes_TerceraEdad = self.df_filtered_antes.loc[self.df_filtered_antes['age_category'] == 'Tercera Edad']
+        self.df_filtered_despues_TerceraEdad = self.df_filtered_despues.loc[self.df_filtered_despues['age_category'] == 'Tercera Edad']
+        
         self.value_counts_df = None
         self.value_counts_df_RangoEtario = None
         self.bins = None
@@ -502,41 +515,8 @@ class PlotGenerator:
             ax.set_title('Proporción Tercera Edad', fontsize=15)
             st.pyplot(fig)
 
-    
-
-            # Count occurrences of each category in both DataFrames
-            value_counts1 = self.df_filtered_antes['rec_NOFOTICO_estudios_integrada'].value_counts()
-            value_counts2 = self.df_filtered_despues['rec_NOFOTICO_estudios_integrada'].value_counts()  # Adjust for the second DataFrame
-
-            # Create a bar plot
-            fig, ax = plt.subplots()
-
-            # Define bar width and positions
-            bar_width = 0.4
-            indices1 = np.arange(len(value_counts1.index))  # positions for DataFrame 1
-            indices2 = indices1 + bar_width  # positions for DataFrame 2
-
-            # Bar plot for the first DataFrame
-            sns.barplot(x=indices1, y=value_counts1.values, ax=ax, color='blue', alpha=0.6, label='DataFrame 1')
-
-            # Bar plot for the second DataFrame
-            sns.barplot(x=indices2, y=value_counts2.values, ax=ax, color='orange', alpha=0.6, label='DataFrame 2')
-
-            # Set x-ticks to be the center of the grouped bars
-            ax.set_xticks(indices1 + bar_width / 2)
-            ax.set_xticklabels(value_counts1.index)
-
-            # Add titles and labels
-            ax.set_title('Overlapping Value Counts')
-            ax.set_xlabel('Category')
-            ax.set_ylabel('Count')
-            ax.legend()
-
-            # Display the plot in Streamlit
-            st.pyplot(fig)
 
 
-            
     def temporal(self):
         palette = sns.color_palette("coolwarm", 3)
         col1, col2 = st.columns(2)
@@ -724,7 +704,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Orange_TerceraEdad'])
+            sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Orange_TerceraEdad'])
             ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -757,7 +737,125 @@ class PlotGenerator:
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             st.pyplot(fig)
+            
+            #######################
+            col_1, col_2, col_3, col_4 = st.columns(4)
+            figsize = (5,4)
+            with col_1:
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Grey_all'])
+                ax.set_title(f"{st.session_state['plot']}", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Green_Jóvenes'])
+                ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
 
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
+                ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
+                ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                 
+            with col_2:
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Grey_all'])
+                ax.set_title(f"{st.session_state['plot']}", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Green_Jóvenes'])
+                ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
+                ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
+                ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+            with col_3:
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']}", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_antes_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+            with col_4:
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']}", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+                
+                fig, ax = plt.subplots(figsize=figsize)
+                sns.countplot(data=self.df_filtered_despues_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+                ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
+                ax.set_ylabel('', fontsize=15)
+                ax.set_xlabel('')
+                st.pyplot(fig)
+            
     def box_plot(self):
         # Convert `HAB_Hora_acostar` to decimal hours
         hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
