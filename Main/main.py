@@ -69,7 +69,7 @@ data_dictionary = {
     'Recomendación - Siesta habitual integrada': 'rec_HAB_siesta_integrada',
     'MEQ Puntaje total': 'MEQ_score_total',
     'MSFsc': 'MSFsc',
-    'Desviación estándar de sueño (habitual)': 'HAB_SDw',
+    'Desviación estándar de sueño': 'HAB_SDw',
     'Desviación de jet lag social': 'SJL',
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
@@ -90,7 +90,33 @@ class DataLoader:
         self.df = pd.merge(self.df, df_geo, how='left', on='provincia')
         columns_to_fix = ['rec_NOFOTICO_HAB_alarma_si_no','rec_FOTICO_luz_natural_8_15_integrada','rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada','rec_NOFOTICO_trabajo_integrada','rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada','rec_HAB_siesta_integrada']
         self.df[columns_to_fix] = self.df[columns_to_fix].fillna('None').astype(str)
+        self.df['MEQ_score_total'] = self.df['MEQ_score_total'].apply(self.define_chronotype)
+        time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
+        self.df['HAB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
+        time = pd.to_datetime(self.df['HAB_Hora_decidir'], format='%H:%M')
+        self.df['HAB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
+        time = pd.to_datetime(self.df['LIB_Offf'], format='%H:%M')
+        self.df['LIB_Offf'] = time.dt.hour + time.dt.minute / 60
+        time = pd.to_datetime(self.df['HAB_Soffw'], format='%H:%M')
+        self.df['HAB_Soffw'] = time.dt.hour + time.dt.minute / 60
+        time = self.df['HAB_SDw']
+        self.df['HAB_SDw'] = time / 60
+        
         return self.df
+    def define_chronotype(self, score):
+        """Define the chronotype based on the MEQ score."""
+        if 16 <= score <= 30:
+            return 'Vespertino Ext'
+        elif 31 <= score <= 41:
+            return 'Vespertino Mod'
+        elif 42 <= score <= 58:
+            return 'Intermedio'
+        elif 59 <= score <= 69:
+            return 'Matutino Mod'
+        elif 70 <= score <= 86:
+            return 'Matutino Ext'
+        else:
+            return 'Fuera de Rango'
 
 class Df:
     def __init__(self,df):
@@ -288,14 +314,14 @@ class Filters:
         if not st.session_state['all_recommendations_checkbox']:  
             self.result = self.recomendations(self.result, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = st.session_state['ambas_antes_despues'])
             
+
+        self.result_antes = self.recomendations(self.result_antes, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Antes' )
+        self.result_despues = self.recomendations(self.result_despues, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Después' )
+        
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
             self.result = self.entries_users(self.result)
             self.result_antes = self.entries_users(self.result_antes)
             self.result_despues = self.entries_users(self.result_despues)
-        self.result_antes = self.recomendations(self.result_antes, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Antes' )
-        self.result_despues = self.recomendations(self.result_despues, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Después' )
-
-
 
 class PlotGenerator:
     def __init__(self,df,df_filtered_antes,df_filtered_despues):
@@ -370,30 +396,15 @@ class PlotGenerator:
             self.pie_plot()
             self.bar_plot()
         elif st.session_state['plot'] == "Horario de acostarse - Hábiles":
-            time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
-            self.df['HAB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
-            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
-            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
-            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Horario decidir dormir - Hábiles':
-            time = pd.to_datetime(self.df['HAB_Hora_decidir'], format='%H:%M')
-            self.df['HAB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
-            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
-            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
-            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Minutos dormir - Hábiles':
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Hora despertar - Hábiles':
-            time = pd.to_datetime(self.df['HAB_Soffw'], format='%H:%M')
-            self.df['HAB_Soffw'] = time.dt.hour + time.dt.minute / 60
-            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
-            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
-            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Alarma - Hábiles':
@@ -409,30 +420,15 @@ class PlotGenerator:
             self.pie_plot()
             self.bar_plot()
         elif st.session_state['plot'] == 'Horario de acostarse - Libre':
-            time = pd.to_datetime(self.df['LIB_Hora_acostar'], format='%H:%M')
-            self.df['LIB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
-            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
-            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
-            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Horario decidir dormir - Libres':
-            time = pd.to_datetime(self.df['LIB_Hora_decidir'], format='%H:%M')
-            self.df['LIB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
-            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
-            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
-            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Minutos dormir - Libres':
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Hora despertar - Libres':
-            time = pd.to_datetime(self.df['LIB_Offf'], format='%H:%M')
-            self.df['LIB_Offf'] = time.dt.hour + time.dt.minute / 60
-            self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
-            self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
-            self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Alarma - Libres':
@@ -471,6 +467,16 @@ class PlotGenerator:
             self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_HAB_siesta_integrada'
             self.pie_plot()
             self.bar_plot()
+        elif st.session_state['plot'] == "MEQ Puntaje total":
+            self.bar_plot()
+        elif st.session_state['plot'] == 'MSFsc':
+            self.bins = 24
+            self.histo_plot()
+        elif st.session_state['plot'] == 'Desviación estándar de sueño':
+            self.bins = 24
+            self.histo_plot()
+
+            
     def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
         with col_2:
@@ -514,8 +520,6 @@ class PlotGenerator:
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('Proporción Tercera Edad', fontsize=15)
             st.pyplot(fig)
-
-
 
     def temporal(self):
         palette = sns.color_palette("coolwarm", 3)
@@ -680,6 +684,7 @@ class PlotGenerator:
             st.pyplot(fig)
          
     def bar_plot(self):
+        
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -687,6 +692,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
                         
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -694,6 +700,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -701,6 +708,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -708,6 +716,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Tercera Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)   
         with col2:   
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -715,6 +724,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -722,6 +732,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -729,6 +740,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -736,6 +748,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             #######################
@@ -747,6 +760,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -754,6 +768,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
 
@@ -762,6 +777,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -769,6 +785,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
                 
         with col_2:
@@ -777,6 +794,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -784,6 +802,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -791,6 +810,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -798,6 +818,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
         with col_3:
             fig, ax = plt.subplots(figsize=figsize)
@@ -805,6 +826,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -812,6 +834,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -819,6 +842,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -826,6 +850,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
         with col_4:
             fig, ax = plt.subplots(figsize=figsize)
@@ -833,6 +858,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']}", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -840,6 +866,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Jóvenes", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -847,6 +874,7 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - Adultos", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
@@ -854,8 +882,40 @@ class PlotGenerator:
             ax.set_title(f"{st.session_state['plot']} - T. Edad", fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
+            plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
             
+    def scatter_plot(self):
+        fig, ax = plt.subplots(figsize=(6, 6))
+        sns.scatterplot(
+            x=self.df_filtered_antes['SJL'], y=self.df_filtered_antes['SJL'], 
+            color='blue', label='Antes', marker='o', alpha=0.7, s=60, ax=ax
+        )
+
+        # Plot 'despues' DataFrame
+        sns.scatterplot(
+            x=self.df_filtered_despues['SJL'], y=self.df_filtered_despues['SJL'], 
+            color='red', label='Después', marker='x', alpha=0.7, s=60, ax=ax
+        )
+
+        # Add the reference line y = x
+        max_value = max(self.df_filtered_antes['SJL'].max(), self.df_filtered_antes['SJL'].max())
+        ax.plot([0, max_value], [0, max_value], color='black', linestyle='-', linewidth=1)
+
+        # Set labels, title, and limits
+        ax.set_xlabel('SJL - Pre / Antes')
+        ax.set_ylabel('SJL - Post / Después')
+        ax.set_title('SJL Comparison: Antes vs Después')
+        ax.set_xlim(0, max_value)
+        ax.set_ylim(0, max_value)
+        ax.set_aspect('equal', adjustable='box')
+
+        # Add a legend
+        ax.legend()
+
+        # Render the plot using Streamlit
+        st.pyplot(fig)
+                    
     def box_plot(self):
         # Convert `HAB_Hora_acostar` to decimal hours
         hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
@@ -931,19 +991,19 @@ def main():
     
     if st.session_state['datos'] == True:
         st.write('df_all')
-        st.write(f'Cantidad de usuarios: {len(df_all)}')  
+        st.write(f'Cantidad : {len(df_all)}')  
         st.write(df_all)
         
         st.write('Data filtrada')
-        st.write(f'Cantidad de usuarios: {len(df_filtered)}')  
+        st.write(f'Cantidad : {len(df_filtered)}')  
         st.write(df_filtered)
         
         st.write('Data filtrada Antes')
-        st.write(f'Cantidad de usuarios: {len(df_filtered_antes)}')
+        st.write(f'Cantidad : {len(df_filtered_antes)}')
         st.write(df_filtered_antes)
 
         st.write('Data filtrada Después')
-        st.write(f'Cantidad de usuarios: {len(df_filtered_despues)}')
+        st.write(f'Cantidad : {len(df_filtered_despues)}')
         st.write(df_filtered_despues)
 
     plot_generator = PlotGenerator(df_filtered, df_filtered_antes, df_filtered_despues)
