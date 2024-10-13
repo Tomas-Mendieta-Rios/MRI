@@ -73,7 +73,6 @@ data_dictionary = {
     'Desviación de jet lag social': 'SJL',
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
-
 class DataLoader: 
     def __init__(self):
         self.df = pd.DataFrame()
@@ -103,6 +102,7 @@ class DataLoader:
         self.df['HAB_SDw'] = time / 60
         
         return self.df
+    
     def define_chronotype(self, score):
         """Define the chronotype based on the MEQ score."""
         if 16 <= score <= 30:
@@ -117,11 +117,9 @@ class DataLoader:
             return 'Matutino Ext'
         else:
             return 'Fuera de Rango'
-
 class Df:
     def __init__(self,df):
         self.df = df
-
 class StreamLit:
     def __init__(self,df):
         self.df = df
@@ -475,8 +473,22 @@ class PlotGenerator:
         elif st.session_state['plot'] == 'Desviación estándar de sueño':
             self.bins = 24
             self.histo_plot()
-
-            
+        elif st.session_state['plot'] == 'Desviación de jet lag social':
+            self.bins = 24
+            self.scatter_plot()
+    #'Recomendación - Alarma no fotica (sí/no)': 'rec_NOFOTICO_HAB_alarma_si_no',
+    #'Recomendación - Luz natural (8-15)': 'rec_FOTICO_luz_natural_8_15_integrada',
+    #'Recomendación - Luz artificial (8-15)': 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
+    #'Recomendación - Estudios no foticos integrados': 'rec_NOFOTICO_estudios_integrada',
+    #'Recomendación - Trabajo no fotico integrado': 'rec_NOFOTICO_trabajo_integrada',
+    #'Recomendación - Otra actividad habitual no fotica (sí/no)': 'rec_NOFOTICO_otra_actividad_habitual_si_no',
+    #'Recomendación - Cena no fotica integrada': 'rec_NOFOTICO_cena_integrada',
+    #'Recomendación - Siesta habitual integrada': 'rec_HAB_siesta_integrada',
+    #'MEQ Puntaje total': 'MEQ_score_total',
+    #'MSFsc': 'MSFsc',
+    #'Desviación estándar de sueño': 'HAB_SDw',
+    #'Desviación de jet lag social': 'SJL',
+    #'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
     def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
         with col_2:
@@ -887,19 +899,23 @@ class PlotGenerator:
             
     def scatter_plot(self):
         fig, ax = plt.subplots(figsize=(6, 6))
-        sns.scatterplot(
+
+        # Hexbin plot for 'Antes'
+        sns.histplot(
             x=self.df_filtered_antes['SJL'], y=self.df_filtered_antes['SJL'], 
-            color='blue', label='Antes', marker='o', alpha=0.7, s=60, ax=ax
+            bins=30, pmax=0.8, color='blue', label='Antes', alpha=0.6, ax=ax, 
+            cmap='Blues'
         )
 
-        # Plot 'despues' DataFrame
-        sns.scatterplot(
+        # Hexbin plot for 'Después'
+        sns.histplot(
             x=self.df_filtered_despues['SJL'], y=self.df_filtered_despues['SJL'], 
-            color='red', label='Después', marker='x', alpha=0.7, s=60, ax=ax
+            bins=30, pmax=0.8, color='red', label='Después', alpha=0.6, ax=ax, 
+            cmap='Reds'
         )
 
-        # Add the reference line y = x
-        max_value = max(self.df_filtered_antes['SJL'].max(), self.df_filtered_antes['SJL'].max())
+        # Add reference line y = x
+        max_value = max(self.df_filtered_antes['SJL'].max(), self.df_filtered_despues['SJL'].max())
         ax.plot([0, max_value], [0, max_value], color='black', linestyle='-', linewidth=1)
 
         # Set labels, title, and limits
@@ -915,7 +931,7 @@ class PlotGenerator:
 
         # Render the plot using Streamlit
         st.pyplot(fig)
-                    
+          
     def box_plot(self):
         # Convert `HAB_Hora_acostar` to decimal hours
         hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
