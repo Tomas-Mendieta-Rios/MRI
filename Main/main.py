@@ -90,14 +90,25 @@ class DataLoader:
         columns_to_fix = ['rec_NOFOTICO_HAB_alarma_si_no','rec_FOTICO_luz_natural_8_15_integrada','rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada','rec_NOFOTICO_trabajo_integrada','rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada','rec_HAB_siesta_integrada']
         self.df[columns_to_fix] = self.df[columns_to_fix].fillna('None').astype(str)
         self.df['MEQ_score_total'] = self.df['MEQ_score_total'].apply(self.define_chronotype)
+        
         time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
         self.df['HAB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
+        
         time = pd.to_datetime(self.df['HAB_Hora_decidir'], format='%H:%M')
         self.df['HAB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
-        time = pd.to_datetime(self.df['LIB_Offf'], format='%H:%M')
-        self.df['LIB_Offf'] = time.dt.hour + time.dt.minute / 60
+        
         time = pd.to_datetime(self.df['HAB_Soffw'], format='%H:%M')
         self.df['HAB_Soffw'] = time.dt.hour + time.dt.minute / 60
+        
+        time = pd.to_datetime(self.df['LIB_Hora_acostar'], format='%H:%M')
+        self.df['LIB_Hora_acostar'] = time.dt.hour + time.dt.minute / 60
+        
+        time = pd.to_datetime(self.df['LIB_Hora_decidir'], format='%H:%M')
+        self.df['LIB_Hora_decidir'] = time.dt.hour + time.dt.minute / 60
+        
+        time = pd.to_datetime(self.df['LIB_Offf'], format='%H:%M')
+        self.df['LIB_Offf'] = time.dt.hour + time.dt.minute / 60
+
         time = self.df['HAB_SDw']
         self.df['HAB_SDw'] = time / 60
         
@@ -357,10 +368,6 @@ class PlotGenerator:
             self.histo_plot()
         elif st.session_state['plot'] == "Provincia":
             self.map()
-        elif st.session_state['plot'] == 'Seguiste recomendaciones':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'SEGUISTE_RECOMENDACIONES'
-            self.pie_plot()
-            self.bar_plot()
         elif st.session_state['plot'] == 'Percepción de cambio': 
             self.value_counts_df = self.value_counts_df_RangoEtario = 'RECOMENDACIONES_AJUSTE'
             self.pie_plot()
@@ -696,7 +703,6 @@ class PlotGenerator:
             st.pyplot(fig)
          
     def bar_plot(self):
-        
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
