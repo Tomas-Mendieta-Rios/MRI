@@ -226,9 +226,9 @@ class StreamLit:
         st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100, key='age_adult_min')
         st.sidebar.number_input("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min')
         
-        st.sidebar.checkbox("Rango etario",  key='rango_etario')
-        if not st.session_state['rango_etario']:
-            st.sidebar.selectbox("Seleccionar rango etario", options=self.df['age_category'].unique().tolist(), key='gender_selectbox')
+        #st.sidebar.checkbox("Rango etario",  key='rango_etario')
+        #if not st.session_state['rango_etario']:
+        #    st.sidebar.selectbox("Seleccionar rango etario", options=self.df['age_category'].unique().tolist(), key='gender_selectbox')
         
         st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
         if 'datos' not in st.session_state:
