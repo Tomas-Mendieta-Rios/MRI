@@ -14,7 +14,9 @@ custom_colors = {
     'Grey_all': '#D3D3D3',
     'Green_Jóvenes': '#6ABF69',
     'Yellow_Adultos': '#EADF6E',
-    'Orange_TerceraEdad': '#F0A154'
+    'Orange_TerceraEdad': '#F0A154',
+    'Red_Antes': '#F28B82',  
+    'Red_Despues': '#B00020'  
 }
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
@@ -40,25 +42,25 @@ data_dictionary = {
     'Minutos dormir - Libres': 'LIB_min_dormir',
     'Hora despertar - Libres': 'LIB_Offf',
     'Alarma - Libres': 'LIB_alarma_si_no',
-    'MEQ Pregunta 1': 'MEQ1',
-    'MEQ Pregunta 2': 'MEQ2',
-    'MEQ Pregunta 3': 'MEQ3',
-    'MEQ Pregunta 4': 'MEQ4',
-    'MEQ Pregunta 5': 'MEQ5',
-    'MEQ Pregunta 6': 'MEQ6',
-    'MEQ Pregunta 7': 'MEQ7',
-    'MEQ Pregunta 8': 'MEQ8',
-    'MEQ Pregunta 9': 'MEQ9',
-    'MEQ Pregunta 10': 'MEQ10',
-    'MEQ Pregunta 11': 'MEQ11',
-    'MEQ Pregunta 12': 'MEQ12',
-    'MEQ Pregunta 13': 'MEQ13',
-    'MEQ Pregunta 14': 'MEQ14',
-    'MEQ Pregunta 15': 'MEQ15',
-    'MEQ Pregunta 16': 'MEQ16',
-    'MEQ Pregunta 17': 'MEQ17',
-    'MEQ Pregunta 18': 'MEQ18',
-    'MEQ Pregunta 19': 'MEQ19',
+   # 'MEQ Pregunta 1': 'MEQ1',
+   # 'MEQ Pregunta 2': 'MEQ2',
+   # 'MEQ Pregunta 3': 'MEQ3',
+   # 'MEQ Pregunta 4': 'MEQ4',
+   # 'MEQ Pregunta 5': 'MEQ5',
+   # 'MEQ Pregunta 6': 'MEQ6',
+   # 'MEQ Pregunta 7': 'MEQ7',
+   # 'MEQ Pregunta 8': 'MEQ8',
+   # 'MEQ Pregunta 9': 'MEQ9',
+   # 'MEQ Pregunta 10': 'MEQ10',
+   # 'MEQ Pregunta 11': 'MEQ11',
+   # 'MEQ Pregunta 12': 'MEQ12',
+   # 'MEQ Pregunta 13': 'MEQ13',
+   # 'MEQ Pregunta 14': 'MEQ14',
+   # 'MEQ Pregunta 15': 'MEQ15',
+   # 'MEQ Pregunta 16': 'MEQ16',
+   # 'MEQ Pregunta 17': 'MEQ17',
+   # 'MEQ Pregunta 18': 'MEQ18',
+   # 'MEQ Pregunta 19': 'MEQ19',
     'Recomendación - Alarma no fotica (sí/no)': 'rec_NOFOTICO_HAB_alarma_si_no',
     'Recomendación - Luz natural (8-15)': 'rec_FOTICO_luz_natural_8_15_integrada',
     'Recomendación - Luz artificial (8-15)': 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
@@ -187,6 +189,10 @@ class StreamLit:
         
         if 'max_days_diff_input' not in st.session_state:
             st.session_state['max_days_diff_input'] = 30
+        
+        if 'rango_etario' not in st.session_state:
+            st.session_state['rango_etario'] = True
+
    
     def sidebar(self):
         st.sidebar.header('Filter Options')
@@ -197,7 +203,7 @@ class StreamLit:
         if not st.session_state['all_dates_checkbox']:
             st.sidebar.date_input("Start Date", value=self.df['date_recepcion_data'].min(), key='start_date_input')
             st.sidebar.date_input("End Date", value=self.df['date_recepcion_data'].max(), key='end_date_input')
-
+        
         st.sidebar.checkbox("All Ages", key='all_ages_checkbox')
         if not st.session_state['all_ages_checkbox']:
             st.sidebar.slider("Age Range", min_value=int(self.df['age'].min()),max_value=int(self.df['age'].max()),value=(int(self.df['age'].min()), int(self.df['age'].max())),key='age_range_slider')
@@ -219,7 +225,11 @@ class StreamLit:
         st.sidebar.number_input("Min Age for Jóvenes", min_value=0, max_value=100 ,key='age_joven_min')
         st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100, key='age_adult_min')
         st.sidebar.number_input("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min')
-
+        
+        st.sidebar.checkbox("Rango etario",  key='rango_etario')
+        if not st.session_state['rango_etario']:
+            st.sidebar.selectbox("Seleccionar rango etario", options=self.df['age_category'].unique().tolist(), key='gender_selectbox')
+        
         st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
         if 'datos' not in st.session_state:
             st.session_state['datos'] = True
@@ -248,7 +258,6 @@ class Filters:
         return df[df['genero'] == st.session_state['gender_selectbox']]
 
     def recomendations(self, df,days_min, days_max, rec_filter,when_filter):
-
         df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
         df = df.reset_index(drop=True)
         final_indices = []
@@ -294,6 +303,8 @@ class Filters:
                 return 'Tercera Edad'
         df['age_category'] = df['age'].apply(age_category)
         return df
+    def select_age_category(self,df):
+        return df[df['age_category'] == st.session_state['rango_etario']]
 
     def choose_filter(self):
         self.result = self.df
@@ -319,18 +330,22 @@ class Filters:
             self.result = self.genders(self.result)
             self.result_antes = self.genders(self.result_antes)
             self.result_despues = self.genders(self.result_despues)
-
+        
         if not st.session_state['all_recommendations_checkbox']:  
             self.result = self.recomendations(self.result, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = st.session_state['ambas_antes_despues'])
-            
 
-        self.result_antes = self.recomendations(self.result_antes, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Antes' )
-        self.result_despues = self.recomendations(self.result_despues, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = 'Si', when_filter = 'Después' )
+        self.result_antes = self.recomendations(self.result_antes, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = 'Antes' )
+        self.result_despues = self.recomendations(self.result_despues, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = 'Después' )
         
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
             self.result = self.entries_users(self.result)
             self.result_antes = self.entries_users(self.result_antes)
             self.result_despues = self.entries_users(self.result_despues)
+        
+        if st.session_state['rango_etario'] == False:
+            self.result = self.select_age_category(self.result)
+            self.result_antes = self.select_age_category(self.result_antes)
+            self.result_despues = self.select_age_category(self.result_despues)
 
 class PlotGenerator:
     def __init__(self,df,df_filtered_antes,df_filtered_despues):
@@ -338,17 +353,14 @@ class PlotGenerator:
         self.df_filtered_antes = df_filtered_antes
         self.df_filtered_despues = df_filtered_despues
 
-        # Filter 'Jóvenes' in different DataFrames
         self.df_Jovenes = self.df.loc[self.df['age_category'] == 'Jóvenes']
         self.df_filtered_antes_Jovenes = self.df_filtered_antes.loc[self.df_filtered_antes['age_category'] == 'Jóvenes']
         self.df_filtered_despues_Jovenes = self.df_filtered_despues.loc[self.df_filtered_despues['age_category'] == 'Jóvenes']
 
-        # Filter 'Adultos' in different DataFrames
         self.df_Adultos = self.df.loc[self.df['age_category'] == 'Adultos']
         self.df_filtered_antes_Adultos = self.df_filtered_antes.loc[self.df_filtered_antes['age_category'] == 'Adultos']
         self.df_filtered_despues_Adultos = self.df_filtered_despues.loc[self.df_filtered_despues['age_category'] == 'Adultos']
 
-        # Filter 'Tercera Edad' in different DataFrames
         self.df_TerceraEdad = self.df.loc[self.df['age_category'] == 'Tercera Edad']
         self.df_filtered_antes_TerceraEdad = self.df_filtered_antes.loc[self.df_filtered_antes['age_category'] == 'Tercera Edad']
         self.df_filtered_despues_TerceraEdad = self.df_filtered_despues.loc[self.df_filtered_despues['age_category'] == 'Tercera Edad']
@@ -481,7 +493,6 @@ class PlotGenerator:
             self.bins = 24
             self.histo_plot()
         elif st.session_state['plot'] == 'Desviación de jet lag social':
-            self.bins = 24
             self.scatter_plot()
     #'Recomendación - Alarma no fotica (sí/no)': 'rec_NOFOTICO_HAB_alarma_si_no',
     #'Recomendación - Luz natural (8-15)': 'rec_FOTICO_luz_natural_8_15_integrada',
@@ -904,40 +915,18 @@ class PlotGenerator:
             st.pyplot(fig)
             
     def scatter_plot(self):
-        fig, ax = plt.subplots(figsize=(6, 6))
-
-        # Hexbin plot for 'Antes'
-        sns.histplot(
-            x=self.df_filtered_antes['SJL'], y=self.df_filtered_antes['SJL'], 
-            bins=30, pmax=0.8, color='blue', label='Antes', alpha=0.6, ax=ax, 
-            cmap='Blues'
-        )
-
-        # Hexbin plot for 'Después'
-        sns.histplot(
-            x=self.df_filtered_despues['SJL'], y=self.df_filtered_despues['SJL'], 
-            bins=30, pmax=0.8, color='red', label='Después', alpha=0.6, ax=ax, 
-            cmap='Reds'
-        )
-
-        # Add reference line y = x
-        max_value = max(self.df_filtered_antes['SJL'].max(), self.df_filtered_despues['SJL'].max())
-        ax.plot([0, max_value], [0, max_value], color='black', linestyle='-', linewidth=1)
-
-        # Set labels, title, and limits
-        ax.set_xlabel('SJL - Pre / Antes')
-        ax.set_ylabel('SJL - Post / Después')
-        ax.set_title('SJL Comparison: Antes vs Después')
-        ax.set_xlim(0, max_value)
-        ax.set_ylim(0, max_value)
-        ax.set_aspect('equal', adjustable='box')
-
-        # Add a legend
-        ax.legend()
-
-        # Render the plot using Streamlit
-        st.pyplot(fig)
-          
+        col1, col2 = st.columns(2)
+        with col1:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.scatterplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], y='user_id', ax=ax, color=custom_colors['Red_Antes'], label='Antes')
+            sns.scatterplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], y='user_id', ax=ax, color=custom_colors['Red_Despues'], label='Después')
+            ax.set_title("SJL", fontsize=20)
+            ax.set_xlabel('sjl', fontsize=15)
+            ax.set_ylabel('')
+            ax.yaxis.set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig)
+        
     def box_plot(self):
         # Convert `HAB_Hora_acostar` to decimal hours
         hab_acostar_time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
