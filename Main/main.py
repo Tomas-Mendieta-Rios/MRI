@@ -7,16 +7,34 @@ import pydeck as pdk
 import plotly.express as px
 import seaborn.objects as so
 st.set_page_config(layout="wide")
-color_palette = color_list = sns.color_palette("Blues", n_colors=5)
+# Blue palette
+blue = sns.color_palette("Blues", n_colors=5)
+
+# Orange palette
+orange = sns.color_palette("Oranges", n_colors=5)
+
+# Yellow palette
+yellow = sns.color_palette("YlOrBr", n_colors=5)
+
+# Green palette
+green = sns.color_palette("Greens", n_colors=5)
 custom_colors = {
-    'Purple_0': '#8570A9',
-    'Blue_1': '#9ABECE',
+
     'Grey_all': '#D3D3D3',
     'Green_Jóvenes': '#6ABF69',
+    'Green_Jóvenes_0': '#A3D69B',  
+    'Green_Jóvenes_1': '#4C8C3D',  
     'Yellow_Adultos': '#EADF6E',
+    'Yellow_Adultos_0': '#F5E7A0',  
+    'Yellow_Adultos_1': '#D1C050',  
     'Orange_TerceraEdad': '#F0A154',
+    'Orange_TerceraEdad_0': '#F6C79B',  
+    'Orange_TerceraEdad_1': '#C77733',  
     'Red_Antes': '#F28B82',  
-    'Red_Despues': '#B00020'  
+    'Red_Despues': '#B00020',
+    'Blue': '#4F83CC',  
+    'Blue_0': '#ADD8E6',  
+    'Blue_1': '#1E3A5F'   
 }
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
@@ -222,10 +240,6 @@ class StreamLit:
         st.sidebar.number_input("Min Age for Jóvenes", min_value=0, max_value=100 ,key='age_joven_min')
         st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100, key='age_adult_min')
         st.sidebar.number_input("Min Age for Tercera Edad", min_value=0, max_value=100,  key='age_tercera_edad_min')
-        
-        #st.sidebar.checkbox("Rango etario",  key='rango_etario')
-        #if not st.session_state['rango_etario']:
-        #    st.sidebar.selectbox("Seleccionar rango etario", options=self.df['age_category'].unique().tolist(), key='gender_selectbox')
         
         st.sidebar.selectbox("Gráficos", list(data_dictionary.keys()), key='plot')
         if 'datos' not in st.session_state:
@@ -490,6 +504,7 @@ class PlotGenerator:
         elif st.session_state['plot'] == 'Desviación de jet lag social':
             self.scatter_plot()
             self.box_plot()
+            
     #'Recomendación - Alarma no fotica (sí/no)': 'rec_NOFOTICO_HAB_alarma_si_no',
     #'Recomendación - Luz natural (8-15)': 'rec_FOTICO_luz_natural_8_15_integrada',
     #'Recomendación - Luz artificial (8-15)': 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
@@ -511,40 +526,40 @@ class PlotGenerator:
             if st.session_state['plot'] == 'Edad':
                 colors = [custom_colors['Yellow_Adultos'],custom_colors['Green_Jóvenes'],custom_colors['Orange_TerceraEdad']]
             else:
-                colors = color_palette
+                colors = blue
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Proporción', fontsize=15)
+            ax.set_title('', fontsize=15)
             st.pyplot(fig)
         col1, col2, col3 = st.columns(3)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
             value_counts = self.df_Jovenes[self.value_counts_df_RangoEtario].value_counts()
             if st.session_state['plot'] == 'Edad':
-                colors = [custom_colors['Purple_0'],custom_colors['Blue_1']]
+                colors = [custom_colors['Green_Jóvenes_0'],custom_colors['Green_Jóvenes_1']]
             else:
-                colors = color_palette
+                colors = green
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Proporción Jóvenes', fontsize=15)
+            ax.set_title('', fontsize=15)
             st.pyplot(fig)
         with col2:
             fig, ax = plt.subplots(figsize=(8, 6))
             value_counts = self.df_Adultos[self.value_counts_df_RangoEtario].value_counts()
             if st.session_state['plot'] == 'Edad':
-                colors = [custom_colors['Purple_0'],custom_colors['Blue_1']]
+                colors = [custom_colors['Yellow_Adultos_0'],custom_colors['Yellow_Adultos_1']]
             else:
-                colors = color_palette
+                colors = yellow
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Proporción Adultos', fontsize=15)
+            ax.set_title('', fontsize=15)
             st.pyplot(fig)
         with col3:
             fig, ax = plt.subplots(figsize=(8, 6))
             value_counts = self.df_TerceraEdad[self.value_counts_df_RangoEtario].value_counts()
             if st.session_state['plot'] == 'Edad':
-                colors = [custom_colors['Purple_0'],custom_colors['Blue_1']]
+                colors = [custom_colors['Orange_TerceraEdad_0'],custom_colors['Orange_TerceraEdad_1']]
             else:
-                colors = color_palette
+                colors = orange
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
-            ax.set_title('Proporción Tercera Edad', fontsize=15)
+            ax.set_title('', fontsize=15)
             st.pyplot(fig)
 
     def temporal(self):
@@ -556,7 +571,7 @@ class PlotGenerator:
             grouped_data = self.df.groupby('month').size().reset_index(name='count')
             grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data, x='month', y='count', color=custom_colors['Grey_all'], ax=ax)
+            sns.lineplot(data=grouped_data, x='month', y='count', color=custom_colors['Blue'], ax=ax)
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -605,7 +620,7 @@ class PlotGenerator:
             grouped_data_gender['month'] = grouped_data_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.lineplot(data=grouped_data_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Blue_0'],custom_colors['Blue_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -617,7 +632,7 @@ class PlotGenerator:
             grouped_data_jovenes_gender['month'] = grouped_data_jovenes_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_jovenes_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.lineplot(data=grouped_data_jovenes_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Green_Jóvenes_0'],custom_colors['Green_Jóvenes_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -629,7 +644,7 @@ class PlotGenerator:
             grouped_data_adultos_gender['month'] = grouped_data_adultos_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_adultos_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.lineplot(data=grouped_data_adultos_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Yellow_Adultos_0'],custom_colors['Yellow_Adultos_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -641,19 +656,18 @@ class PlotGenerator:
             grouped_data_tercera_gender['month'] = grouped_data_tercera_gender['month'].dt.to_timestamp()
 
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=grouped_data_tercera_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.lineplot(data=grouped_data_tercera_gender, x='month', y='count', hue='genero', ax=ax, palette=[custom_colors['Orange_TerceraEdad_0'],custom_colors['Orange_TerceraEdad_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             plt.xticks(rotation=45)
             st.pyplot(fig)
  
-    def histo_plot(self):
-        palette = sns.color_palette("coolwarm", 3)  
+    def histo_plot(self): 
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Grey_all'])
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Blue'])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -682,28 +696,28 @@ class PlotGenerator:
 
         with col2:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax,palette = [custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.histplot(data=self.df, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax,palette = [custom_colors['Blue_0'],custom_colors['Blue_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.histplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Green_Jóvenes_0'],custom_colors['Green_Jóvenes_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.histplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Yellow_Adultos_0'],custom_colors['Yellow_Adultos_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']])
+            sns.histplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], hue='genero', kde=False, bins=self.bins, multiple='dodge', ax=ax, palette=[custom_colors['Orange_TerceraEdad_0'],custom_colors['Orange_TerceraEdad_1']])
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
@@ -713,7 +727,7 @@ class PlotGenerator:
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Grey_all'])
+            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Blue'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -745,7 +759,7 @@ class PlotGenerator:
             st.pyplot(fig)   
         with col2:   
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Blue_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -753,7 +767,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Green_Jóvenes_0'],custom_colors['Green_Jóvenes_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -761,7 +775,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Yellow_Adultos_0'],custom_colors['Yellow_Adultos_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -769,7 +783,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Orange_TerceraEdad_0'],custom_colors['Orange_TerceraEdad_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -780,8 +794,9 @@ class PlotGenerator:
         col_1, col_2, col_3, col_4 = st.columns(4)
         figsize = (8,6)
         with col_1:
+            st.markdown("<div style='text-align: center; font-family:sans-serif; font-weight: normal;'>Antes</div>", unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Grey_all'])
+            sns.countplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Blue'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -806,7 +821,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_antes_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
+            sns.countplot(data=self.df_filtered_antes_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Orange_TerceraEdad'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -814,8 +829,9 @@ class PlotGenerator:
             st.pyplot(fig)
                 
         with col_2:
+            st.markdown("<div style='text-align: center; font-family:sans-serif; font-weight: normal;'>Después</div>", unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Grey_all'])
+            sns.countplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Blue'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -839,15 +855,16 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_despues_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Yellow_Adultos'])
+            sns.countplot(data=self.df_filtered_despues_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Orange_TerceraEdad'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
         with col_3:
+            st.markdown("<div style='text-align: center; font-family:sans-serif; font-weight: normal;'>Antes</div>", unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Blue_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -855,7 +872,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_antes_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_antes_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Green_Jóvenes_0'],custom_colors['Green_Jóvenes_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -863,7 +880,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_antes_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_antes_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Yellow_Adultos_0'],custom_colors['Yellow_Adultos_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -871,15 +888,16 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_antes_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_antes_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Orange_TerceraEdad_0'],custom_colors['Orange_TerceraEdad_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
         with col_4:
+            st.markdown("<div style='text-align: center; font-family:sans-serif; font-weight: normal;'>Después</div>", unsafe_allow_html=True)
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Blue_0'],custom_colors['Blue_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -887,7 +905,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_despues_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_despues_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Green_Jóvenes_0'],custom_colors['Green_Jóvenes_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -895,7 +913,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_despues_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_despues_Adultos, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Yellow_Adultos_0'],custom_colors['Yellow_Adultos_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -903,7 +921,7 @@ class PlotGenerator:
             st.pyplot(fig)
             
             fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.df_filtered_despues_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Purple_0'],custom_colors['Blue_1']], hue='genero')
+            sns.countplot(data=self.df_filtered_despues_TerceraEdad, x=data_dictionary[st.session_state['plot']], ax=ax, palette=[custom_colors['Orange_TerceraEdad_0'],custom_colors['Orange_TerceraEdad_1']], hue='genero')
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -995,7 +1013,7 @@ def main():
    
     
     if st.session_state['datos'] == True:
-        st.write('df_all')
+        st.write('Data original')
         st.write(f'Cantidad : {len(df_all)}')  
         st.write(df_all)
         
