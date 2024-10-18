@@ -130,10 +130,6 @@ class DataLoader:
         
         return self.df
     
-    def apply_categorize_age(self):
-        filters = Filters(self.df)
-        self.df = filters.categorize_age(self.df)
-    
     def define_chronotype(self, score):
         if 16 <= score <= 30:
             return 'Vespertino Ext'
