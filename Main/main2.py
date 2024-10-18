@@ -328,46 +328,29 @@ class Filters:
     
     def choose_filter(self):
         self.result = self.df
-        self.result_antes = self.df
-        self.result_despues = self.df
 
         if not st.session_state['all_dates_checkbox']:  
             self.result = self.dates(self.result)
-            self.result_antes = self.dates(self.result_antes)
-            self.result_despues = self.dates(self.result_despues)
-
+         
         if not st.session_state['all_ages_checkbox']:  
             self.result = self.ages(self.result)
-            self.result_antes = self.ages(self.result_antes)
-            self.result_despues = self.ages(self.result_despues)
-        
+
         if  st.session_state['define_age_category'] == False:  
             if st.session_state['age_joven_min'] or st.session_state['age_adult_min'] or st.session_state['age_tercera_edad_min']:  
                 self.result = self.categorize_age(self.result)
-                self.result_antes = self.categorize_age(self.result_antes)
-                self.result_despues = self.categorize_age(self.result_despues)
-
+             
         if not st.session_state['all_genders_checkbox']:  
             self.result = self.genders(self.result)
-            self.result_antes = self.genders(self.result_antes)
-            self.result_despues = self.genders(self.result_despues)
-        
+
         if not st.session_state['all_recommendations_checkbox']:  
             self.result = self.recomendations(self.result, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = st.session_state['ambas_antes_despues'])
 
-        self.result_antes = self.recomendations(self.result_antes, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = 'Antes' )
-        self.result_despues = self.recomendations(self.result_despues, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = 'Después' )
-        
         if st.session_state['entradas_usuarios_filter'] == 'Usuarios':
             self.result = self.entries_users(self.result)
-            self.result_antes = self.entries_users(self.result_antes)
-            self.result_despues = self.entries_users(self.result_despues)
-        
+
         if st.session_state['rango_etario'] == False:
             self.result = self.select_age_category(self.result)
-            self.result_antes = self.select_age_category(self.result_antes)
-            self.result_despues = self.select_age_category(self.result_despues)
-        
+
         if st.session_state['age_category_selectbox'] != 'Todos':
             self.result = self.select_age_category(self.result, st.session_state['age_category_selectbox'])
             
@@ -380,7 +363,7 @@ class PlotGenerator:
         self.bins = None
         
         self.filters = Filters(df)
-   
+        
     def choose_plot(self):
         if st.session_state['plot'] == 'Fecha de recepción de datos':
             self.temporal()
@@ -522,7 +505,7 @@ class PlotGenerator:
             ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
             ax.set_title('', fontsize=15)
             st.pyplot(fig)
-
+        
     def temporal(self):
         col1, col2 = st.columns(2)
         with col1:
@@ -548,15 +531,7 @@ class PlotGenerator:
             ax.set_ylabel(st.session_state['plot'], fontsize=15)
             plt.xticks(rotation=45)
             st.pyplot(fig)
-        with col2:
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.lineplot(data=self.df, x='age', y=data_dictionary[st.session_state['plot']],hue='genero', palette=[custom_colors['Blue_0'],custom_colors['Blue_1']], ax=ax, ci=None)
-            ax.set_title('', fontsize=20)
-            ax.set_xlabel('Edad', fontsize=15)
-            ax.set_ylabel(st.session_state['plot'], fontsize=15)
-            plt.xticks(rotation=45)
-            st.pyplot(fig)
-            
+
     def histo_plot(self): 
         col1, col2 = st.columns(2)
         with col1:
@@ -566,7 +541,6 @@ class PlotGenerator:
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('', fontsize=15)
             st.pyplot(fig)
-        
          
     def bar_plot(self):
         col1, col2 = st.columns(2)
@@ -579,24 +553,11 @@ class PlotGenerator:
             plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
 
-        col_1, col_2, col_3, col_4 = st.columns(4)
-        figsize = (8,6)
-        with col_1:
-            st.markdown("<div style='text-align: center; font-family:sans-serif; font-weight: normal;'>Antes</div>", unsafe_allow_html=True)
-            fig, ax = plt.subplots(figsize=figsize)
-            sns.countplot(data=self.filters.recomendations(self.df, days_min = st.session_state['min_days_diff_input'], days_max = st.session_state['max_days_diff_input'], rec_filter = st.session_state['recommendations_selectbox'], when_filter = 'Antes' ), x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Blue'])
-            ax.set_title('', fontsize=20)
-            ax.set_ylabel('', fontsize=15)
-            ax.set_xlabel('')
-            plt.xticks(rotation=45, ha='right')
-            st.pyplot(fig)
-            
     def scatter_plot(self):
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.scatterplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], y='user_id', ax=ax, color=custom_colors['Red_Antes'], label='Antes')
-            sns.scatterplot(data=self.df_filtered_despues, x=data_dictionary[st.session_state['plot']], y='user_id', ax=ax, color=custom_colors['Red_Despues'], label='Después')
+            sns.scatterplot(data=self.df, x=data_dictionary[st.session_state['plot']], y='user_id', ax=ax, color=custom_colors['Red_Antes'], label='Antes')
             ax.set_title('', fontsize=20)
             ax.set_xlabel('', fontsize=15)
             ax.set_ylabel('')
@@ -608,14 +569,13 @@ class PlotGenerator:
         col1, col2 = st.columns(2)
         with col1:
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.boxplot(data=self.df, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Red_Antes'])
+            sns.boxplot(data=self.df_filtered_antes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Red_Antes'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
             plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
 
-    
     def map(self): 
             layer = pdk.Layer(
                 "HeatmapLayer",
@@ -652,19 +612,18 @@ def main():
     filters.choose_filter()  
     
     df_filtered = filters.result  
-    
+ 
 
     column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total','MEQ_score_total_tipo' ,'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total','MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     
     df_all = df_all[column_order_df_all]
     df_filtered = df_filtered[column_order]
-
+ 
     
     df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
     df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-   
-   
+    
     
     if st.session_state['datos'] == True:
         st.write('Data original')
@@ -680,5 +639,9 @@ def main():
     plot_generator.choose_plot()
 
 main()
+
+
+
+
 
 #streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main2.py'
