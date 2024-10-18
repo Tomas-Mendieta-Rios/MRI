@@ -17,19 +17,16 @@ if 'age_tercera_edad_min' not in st.session_state:
     st.session_state['age_tercera_edad_min'] = 60
 
 st.set_page_config(layout="wide")
-# Blue palette
+
 blue = sns.color_palette("Blues", n_colors=5)
 
-# Orange palette
 orange = sns.color_palette("Oranges", n_colors=5)
 
-# Yellow palette
 yellow = sns.color_palette("YlOrBr", n_colors=5)
 
-# Green palette
 green = sns.color_palette("Greens", n_colors=5)
-custom_colors = {
 
+custom_colors = {
     'Grey_all': '#D3D3D3',
     'Green_Jóvenes': '#6ABF69',
     'Green_Jóvenes_0': '#A3D69B',  
@@ -46,6 +43,7 @@ custom_colors = {
     'Blue_0': '#ADD8E6',  
     'Blue_1': '#1E3A5F'   
 }
+
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
     'Edad': 'age',
@@ -103,6 +101,7 @@ data_dictionary = {
     'Desviación Jet Lag Social': 'SJL',
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
+
 class DataLoader: 
     def __init__(self):
         self.df = pd.DataFrame()
@@ -148,11 +147,9 @@ class DataLoader:
     
     def apply_categorize_age(self):
         filters = Filters(self.df)
-      
         self.df = filters.categorize_age(self.df)
     
     def define_chronotype(self, score):
-        """Define the chronotype based on the MEQ score."""
         if 16 <= score <= 30:
             return 'Vespertino Ext'
         elif 31 <= score <= 41:
@@ -165,6 +162,7 @@ class DataLoader:
             return 'Matutino Ext'
         else:
             return 'Fuera de Rango'
+
 class StreamLit:
     def __init__(self,df):
         self.df = df
@@ -265,6 +263,7 @@ class StreamLit:
         if 'datos' not in st.session_state:
             st.session_state['datos'] = True
         st.sidebar.checkbox("Mostrar datos", key='datos')      
+
 class Filters:
     def __init__(self, df):
         self.df = df
@@ -286,6 +285,10 @@ class Filters:
 
     def genders(self, df):
         return df[df['genero'] == st.session_state['gender_selectbox']]
+    
+    def select_age_category(self, df, age_category):
+        df = df[df['age_category'] == age_category]
+        return df
 
     def recomendations(self, df,days_min, days_max, rec_filter,when_filter):
         df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
@@ -324,9 +327,6 @@ class Filters:
         return df.loc[final_indices].reset_index(drop=True)
 
     def categorize_age(self, df):
-       
-
-       
         def age_category(age):
             if age < st.session_state['age_adult_min']:
                 return 'Jóvenes'
@@ -337,9 +337,6 @@ class Filters:
         df['age_category'] = df['age'].apply(age_category)
         return df
     
-    def select_age_category(self,df):
-        return df[df['age_category'] == st.session_state['rango_etario']]
-
     def choose_filter(self):
         self.result = self.df
         self.result_antes = self.df
@@ -381,8 +378,9 @@ class Filters:
             self.result = self.select_age_category(self.result)
             self.result_antes = self.select_age_category(self.result_antes)
             self.result_despues = self.select_age_category(self.result_despues)
+
 class PlotGenerator:
-    def __init__(self,df,df_filtered_antes,df_filtered_despues):
+    def __init__(self, df, df_filtered_antes, df_filtered_despues):
         self.df = df
         self.df_filtered_antes = df_filtered_antes
         self.df_filtered_despues = df_filtered_despues
@@ -402,6 +400,9 @@ class PlotGenerator:
         self.value_counts_df = None
         self.value_counts_df_RangoEtario = None
         self.bins = None
+        
+        self.filters = Filters(df)
+   
         
     def choose_plot(self):
         if st.session_state['plot'] == 'Fecha de recepción de datos':
@@ -530,21 +531,8 @@ class PlotGenerator:
         elif st.session_state['plot'] == 'Desviación Jet Lag Social':
             self.scatter_plot()
             self.box_plot()
-            self.y_edad()
-            
-    #'Recomendación - Alarma no fotica (sí/no)': 'rec_NOFOTICO_HAB_alarma_si_no',
-    #'Recomendación - Luz natural (8-15)': 'rec_FOTICO_luz_natural_8_15_integrada',
-    #'Recomendación - Luz artificial (8-15)': 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
-    #'Recomendación - Estudios no foticos integrados': 'rec_NOFOTICO_estudios_integrada',
-    #'Recomendación - Trabajo no fotico integrado': 'rec_NOFOTICO_trabajo_integrada',
-    #'Recomendación - Otra actividad habitual no fotica (sí/no)': 'rec_NOFOTICO_otra_actividad_habitual_si_no',
-    #'Recomendación - Cena no fotica integrada': 'rec_NOFOTICO_cena_integrada',
-    #'Recomendación - Siesta habitual integrada': 'rec_HAB_siesta_integrada',
-    #'MEQ Puntaje total': 'MEQ_score_total',
-    #'MSFsc': 'MSFsc',
-    #'Desviación estándar de sueño': 'HAB_SDw',
-    #'Desviación Jet Lag Social': 'SJL',
-    #'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
+            self.y_edad() 
+
     def pie_plot(self):    
         col_1, col_2, col_3 = st.columns([1,2,1])
         with col_2:
@@ -778,9 +766,9 @@ class PlotGenerator:
             ax.set_xlabel('')
             plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
-                        
+            
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.countplot(data=self.df_Jovenes, x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Green_Jóvenes'])
+            sns.countplot(data=self.filters.select_age_category(self.df,'Jóvenes'), x=data_dictionary[st.session_state['plot']], ax=ax, color=custom_colors['Green_Jóvenes'])
             ax.set_title('', fontsize=20)
             ax.set_ylabel('', fontsize=15)
             ax.set_xlabel('')
@@ -1030,6 +1018,7 @@ class PlotGenerator:
 
             # If using Streamlit, render the PyDeck chart
             st.pydeck_chart(deck)
+
 def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv','Data/Geo.csv')
@@ -1043,7 +1032,7 @@ def main():
     df_filtered_antes = filters.result_antes
     df_filtered_despues = filters.result_despues
 
-    column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total','MEQ_score_total_tipo' ,'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+    column_order_df_all = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total','MEQ_score_total_tipo' ,'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES','days_diff','age','age_category', 'genero', 'provincia','localidad', 'Latitude','Longitude' ,'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion','FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no','NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw','NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir','LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ1', 'MEQ2', 'MEQ3', 'MEQ4', 'MEQ5', 'MEQ6', 'MEQ7','MEQ8', 'MEQ9', 'MEQ10', 'MEQ11', 'MEQ12', 'MEQ13', 'MEQ14', 'MEQ15', 'MEQ16', 'MEQ17', 'MEQ18', 'MEQ19','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada', 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada', 'rec_HAB_siesta_integrada', 'MEQ_score_total','MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
     
     df_all = df_all[column_order_df_all]
