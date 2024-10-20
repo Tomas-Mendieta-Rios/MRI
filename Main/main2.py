@@ -19,7 +19,6 @@ yellow = sns.color_palette("YlOrBr", n_colors=5)
 green = sns.color_palette("Greens", n_colors=5)
 
 custom_colors = {
-    'Grey_all': '#D3D3D3',
     'Green_Jóvenes': '#6ABF69',
     'Green_Jóvenes_0': '#A3D69B',  
     'Green_Jóvenes_1': '#4C8C3D',  
@@ -71,7 +70,7 @@ data_dictionary = {
     'Recomendación - Siesta habitual integrada': 'rec_HAB_siesta_integrada',
     'MEQ Puntaje total': 'MEQ_score_total_tipo',
     'MSFsc': 'MSFsc',
-    'Desviación Estándar de sueño': 'HAB_SDw',
+    'Desviación Estándar De Sueño': 'HAB_SDw',
     'Desviación Jet Lag Social': 'SJL',
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
@@ -251,11 +250,8 @@ class StreamLit:
             st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100,value = 30, key='age_adult_min_'+ self.plot_id)
             st.sidebar.number_input("Min Age for Tercera Edad", min_value=0, max_value=100,value = 60,  key='age_tercera_edad_min_'+ self.plot_id)
         
-        
-        
-        st.sidebar.checkbox(f"Mostrar datos - Plot {self.plot_id}", key='datos_' + self.plot_id)
+        st.sidebar.checkbox("Mostrar datos", key='datos_' + self.plot_id)
 
- 
 class Filters:
     def __init__(self, df, plot_id):
         self.df = df
@@ -344,13 +340,8 @@ class Filters:
         
         if not st.session_state[f'all_recommendations_checkbox_{self.plot_id}']:
             self.result = self.recomendations(
-                self.result,
-                days_min=st.session_state[f'min_days_diff_input_{self.plot_id}'],
-                days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],
-                rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'],
-                when_filter=st.session_state[f'ambas_antes_despues_{self.plot_id}']
-            )
-
+                self.result,days_min=st.session_state[f'min_days_diff_input_{self.plot_id}'],days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'],when_filter=st.session_state[f'ambas_antes_despues_{self.plot_id}'])
+            
         if not st.session_state['entradas_usuarios_checkbox_' + self.plot_id]:
             if st.session_state[f'entradas_usuarios_filter_{self.plot_id}'] == 'Usuarios':
                 self.result = self.entries_users(self.result)
@@ -364,13 +355,10 @@ class Filters:
         if  st.session_state['define_age_category_' + self.plot_id ] == False:  
             if st.session_state['age_joven_min_' + self.plot_id] or st.session_state['age_adult_min_' + self.plot_id] or st.session_state['age_tercera_edad_min_' + self.plot_id]:  
                 self.result = self.categorize_age(self.result,st.session_state['age_joven_min_' + self.plot_id], st.session_state['age_adult_min_' + self.plot_id]  )
-
-
 class PlotGenerator:
     def __init__(self, df, plot_id):
         self.df = df
         self.plot_id = plot_id
-        
         self.value_counts_df = None
         self.value_counts_df_RangoEtario = None
         self.bins = None
@@ -383,41 +371,30 @@ class PlotGenerator:
             self.value_counts_df = 'age_category'
             self.value_counts_df_RangoEtario = 'genero'
             self.histo_plot()
-        elif st.session_state[f'plot_{self.plot_id}'] == 'Edad - Torta':
-            self.bins = 20
-            self.value_counts_df = 'age_category'
-            self.value_counts_df_RangoEtario = 'genero'
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Provincia":
             self.map()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Percepción de cambio':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'RECOMENDACIONES_AJUSTE'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Exposición luz natural':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'FOTICO_luz_natural_8_15_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Exposición luz artificial":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Estudios no foticos integrados":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_estudios_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Trabajo no fotico integrado":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_trabajo_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Otra actividad habitual no fotica":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_otra_actividad_habitual_si_no'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Cena no fotica integrada":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_cena_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Horario de acostarse - Hábiles":
             self.bins = 24
             self.histo_plot()
@@ -431,16 +408,13 @@ class PlotGenerator:
             self.bins = 24
             self.histo_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Alarma - Hábiles':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'NOFOTICO_HAB_alarma_si_no'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Siesta habitual integrada':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'HAB_siesta_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Calidad de sueño - Hábiles':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'HAB_calidad'
-            #self.pie_plot()
+            self.pie_plot()
             self.bar_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Horario de acostarse - Libre':
             self.bins = 24
@@ -455,50 +429,43 @@ class PlotGenerator:
             self.bins = 24
             self.histo_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Alarma - Libres':
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'LIB_alarma_si_no'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Alarma no fotica (sí/no)":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_HAB_alarma_si_no'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Luz natural (8-15)":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_FOTICO_luz_natural_8_15_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Luz artificial (8-15)":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Estudios no foticos integrados":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_estudios_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Trabajo no fotico integrado":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_trabajo_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Otra actividad habitual no fotica (sí/no)":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_otra_actividad_habitual_si_no'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Cena no fotica integrada":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_NOFOTICO_cena_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Siesta habitual integrada":
-            self.value_counts_df = self.value_counts_df_RangoEtario = 'rec_HAB_siesta_integrada'
-            #self.pie_plot()
             self.bar_plot()
+            self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "MEQ Puntaje total":
             self.bar_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'MSFsc':
             self.bins = 24
-            #self.histo_plot()
+            self.histo_plot()
             self.y_edad()
-        elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación estándar de sueño':
+        elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Estándar De Sueño':
             self.bins = 24
             self.histo_plot()
+            self.scatter_plot()
+            self.box_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Jet Lag Social':
             self.scatter_plot()
             self.box_plot()
@@ -506,11 +473,12 @@ class PlotGenerator:
 
     def pie_plot(self):    
         fig, ax = plt.subplots(figsize=(8, 6))
-        value_counts = self.df[self.value_counts_df].value_counts()
-        if st.session_state[f'plot_{self.plot_id}'] == 'Edad - Torta':
+        if st.session_state[f'plot_{self.plot_id}'] == 'Edad':
+            value_counts = self.df[self.value_counts_df].value_counts()
             colors = [custom_colors['Yellow_Adultos'], custom_colors['Green_Jóvenes'], custom_colors['Orange_TerceraEdad']]
         else:
-            colors = blue
+            value_counts = self.df[data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
+            colors = blue            
         ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
         ax.set_title('', fontsize=15)
         st.pyplot(fig)
@@ -541,16 +509,16 @@ class PlotGenerator:
         fig, ax = plt.subplots(figsize=(8, 6))
         sns.histplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Blue'])
         ax.set_title('', fontsize=20)
-        ax.set_xlabel('', fontsize=15)
-        ax.set_ylabel('', fontsize=15)
+        ax.set_ylabel('Frecuencia', fontsize=15)
+        ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
         st.pyplot(fig)
          
     def bar_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
         sns.countplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], ax=ax, color=custom_colors['Blue'])
         ax.set_title('', fontsize=20)
-        ax.set_ylabel('', fontsize=15)
-        ax.set_xlabel('')
+        ax.set_ylabel('Frecuencia', fontsize=15)
+        ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
         plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
 
@@ -558,8 +526,8 @@ class PlotGenerator:
         fig, ax = plt.subplots(figsize=(8, 6))
         sns.scatterplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], y='user_id', ax=ax, color=custom_colors['Red_Antes'])
         ax.set_title('', fontsize=20)
-        ax.set_xlabel('', fontsize=15)
-        ax.set_ylabel('')
+        ax.set_ylabel('', fontsize=15)
+        ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
         ax.yaxis.set_visible(False)
         plt.tight_layout()
         st.pyplot(fig)
@@ -568,83 +536,51 @@ class PlotGenerator:
         fig, ax = plt.subplots(figsize=(8, 6))
         sns.boxplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], ax=ax, color=custom_colors['Red_Antes'])
         ax.set_title('', fontsize=20)
-        ax.set_ylabel('', fontsize=15)
-        ax.set_xlabel('')
+        ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
+        ax.set_ylabel('')
         plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
 
     def map(self): 
-        layer = pdk.Layer(
-            "HeatmapLayer",
-            data=self.df,  
-            get_position='[Longitude, Latitude]',  
-            opacity=0.9,  
-            radius_pixels=100,  
-            intensity=1,  
-        )
-
-        view_state = pdk.ViewState(
-            latitude=self.df['Latitude'].mean(),  
-            longitude=self.df['Longitude'].mean(),  
-            zoom=5,  
-            pitch=50  
-        )
+        layer = pdk.Layer("HeatmapLayer",data=self.df,  get_position='[Longitude, Latitude]',  opacity=0.9,  radius_pixels=100,  intensity=1,  )
+        view_state = pdk.ViewState(latitude=self.df['Latitude'].mean(),  longitude=self.df['Longitude'].mean(),  zoom=5,  pitch=50  )
         tooltip = {"html": "<b>Province:</b> {provincia}<br><b>Quantity:</b> {quantity}","style": {"backgroundColor": "steelblue","color": "white"}}
-        
         deck = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
         st.pydeck_chart(deck)
 
 def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv', 'Data/Geo.csv')
-    num_plots = st.sidebar.slider("Select the number of plots", min_value=1, max_value=10, value=1, step=1)
-    plots_per_row = 2  
+    num_plots = st.sidebar.slider("Select the number of plots", min_value=1, max_value=9, value=1, step=1)
+    plots_per_row = 3 
     plot_count = 0  
     
     while plot_count < num_plots:
         columns = st.columns(plots_per_row)
         for col in columns:
             if plot_count < num_plots:
-                plot_id = f'plot_{plot_count + 1}'  # Generate a unique plot ID for each plot
-                st.sidebar.header(f"Plot - {plot_count + 1}")  # Since plot_count starts from 0, we add 1 to make it more intuitive
-
-                # Initialize Streamlit sidebar for each plot
+                plot_id = f'plot_{plot_count + 1}'  
+                st.sidebar.header(f"Plot - {plot_count + 1}")  
                 streamlit_app = StreamLit(df_all, plot_id)
-                streamlit_app.sidebar()  # Show the filter options for each plot
-
-                # Apply filters based on the sidebar selections
+                streamlit_app.sidebar()  
                 filters = Filters(df_all, plot_id)
                 filters.choose_filter()
                 df_filtered = filters.result
-
-                # Reorder the columns (if necessary) to match your intended column order
-                column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'age', 'age_category', 
-                                'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 
-                                'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 
-                                'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 
-                                'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 
-                                'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 
-                                'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 
-                                'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 
-                                'MEQ_score_total', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
-
-                # Ensure df_all and df_filtered have the correct column order
+                column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'age', 'age_category', 'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ_score_total', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
                 df_all = df_all[column_order]
                 df_filtered = df_filtered[column_order]
 
-                # Sort the DataFrame by user_id and date for consistency
                 df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
                 df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-                
-                with col:  # Place the plot inside the current column
+                with col:  
                     if st.session_state['datos_' + plot_id] == False:                    
                         st.write('Datos')
                         st.write(f'Cantidad : {len(df_filtered)}')  
                         st.write(df_filtered)
-                    plot_generator = PlotGenerator(df_filtered, plot_id)  # Pass plot_id as well
-                    plot_generator.choose_plot()  # Generate the plot
+                    plot_generator = PlotGenerator(df_filtered, plot_id) 
+                    plot_generator.choose_plot()  
 
-                plot_count += 1  # Increase the plot count after generating a plot
+                plot_count += 1  
 
 if __name__ == "__main__":
     main()
