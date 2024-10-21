@@ -6,34 +6,57 @@ import matplotlib.pyplot as plt
 import pydeck as pdk
 import plotly.express as px
 import seaborn.objects as so
+import matplotlib.colors as mcolors  
 
 
 st.set_page_config(layout="wide")
 
 blue = sns.color_palette("Blues", n_colors=5)
-
 orange = sns.color_palette("Oranges", n_colors=5)
-
 yellow = sns.color_palette("YlOrBr", n_colors=5)
-
 green = sns.color_palette("Greens", n_colors=5)
 
+# Convert the Seaborn palettes to hex using matplotlib's rgb2hex
 custom_colors = {
-    'Green_Jóvenes': '#6ABF69',
-    'Green_Jóvenes_0': '#A3D69B',  
-    'Green_Jóvenes_1': '#4C8C3D',  
-    'Yellow_Adultos': '#EADF6E',
-    'Yellow_Adultos_0': '#F5E7A0',  
-    'Yellow_Adultos_1': '#D1C050',  
-    'Orange_TerceraEdad': '#F0A154',
-    'Orange_TerceraEdad_0': '#F6C79B',  
-    'Orange_TerceraEdad_1': '#C77733',  
-    'Red_Antes': '#F28B82',  
-    'Red_Despues': '#B00020',
-    'Blue': '#4F83CC',  
-    'Blue_0': '#ADD8E6',  
-    'Blue_1': '#1E3A5F'   
+    'Green_Jóvenes': mcolors.rgb2hex(green[2]),   
+    'Green_Jóvenes_0': mcolors.rgb2hex(green[1]),  
+    'Green_Jóvenes_1': mcolors.rgb2hex(green[3]),  
+    'Yellow_Adultos': mcolors.rgb2hex(yellow[1]), 
+    'Yellow_Adultos_0': mcolors.rgb2hex(yellow[1]),  
+    'Yellow_Adultos_1': mcolors.rgb2hex(yellow[0]),  
+    'Orange_TerceraEdad': mcolors.rgb2hex(orange[2]),  
+    'Orange_TerceraEdad_0': mcolors.rgb2hex(orange[1]),  
+    'Orange_TerceraEdad_1': mcolors.rgb2hex(orange[3]),  
+    'Blue': mcolors.rgb2hex(blue[2]),  
+    'Blue_0': mcolors.rgb2hex(blue[1]),  
+    'Blue_1': mcolors.rgb2hex(blue[3])   
 }
+
+# Create lighter and darker versions
+# Create lighter and darker versions
+def adjust_palette(palette, is_lighter=True):
+    """
+    Adjusts the lightness or darkness of the colors in the palette.
+    is_lighter=True for lighter, is_lighter=False for darker.
+    """
+    if is_lighter:
+        return sns.light_palette(palette[1], n_colors=len(palette), reverse=False)
+    else:
+        return sns.dark_palette(palette[1], n_colors=len(palette), reverse=True)
+
+# Lighter and darker palettes
+# Lighter and darker palettes
+blue_0 = adjust_palette(blue, is_lighter=True)  # Lighter blue
+blue_1 = adjust_palette(blue, is_lighter=False)  # Darker blue
+
+orange_0 = adjust_palette(orange, is_lighter=True)  # Lighter orange
+orange_1 = adjust_palette(orange, is_lighter=False)  # Darker orange
+
+yellow_0 = adjust_palette(yellow, is_lighter=True)  # Lighter yellow
+yellow_1 = adjust_palette(yellow, is_lighter=False)  # Darker yellow
+
+green_0 = adjust_palette(green, is_lighter=True)    # Lighter green
+green_1 = adjust_palette(green, is_lighter=False)  
 
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
@@ -91,8 +114,10 @@ class DataLoader:
         self.df.reset_index(drop=True, inplace=True)
         self.df['days_diff'] = self.df.groupby('user_id')['date_recepcion_data'].diff().dt.days.fillna(0)
         self.df = pd.merge(self.df, df_geo, how='left', on='provincia')
-        columns_to_fix = ['rec_NOFOTICO_HAB_alarma_si_no','rec_FOTICO_luz_natural_8_15_integrada','rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada','rec_NOFOTICO_trabajo_integrada','rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada','rec_HAB_siesta_integrada']
-        self.df[columns_to_fix] = self.df[columns_to_fix].fillna('None').astype(str)
+       
+       # columns_to_fix = ['rec_NOFOTICO_HAB_alarma_si_no','rec_FOTICO_luz_natural_8_15_integrada','rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada','rec_NOFOTICO_estudios_integrada','rec_NOFOTICO_trabajo_integrada','rec_NOFOTICO_otra_actividad_habitual_si_no','rec_NOFOTICO_cena_integrada','rec_HAB_siesta_integrada']
+       #self.df[columns_to_fix] = self.df[columns_to_fix].fillna('None').astype(str)
+        
         self.df['MEQ_score_total_tipo'] = self.df['MEQ_score_total'].apply(self.define_chronotype)
         
         time = pd.to_datetime(self.df['HAB_Hora_acostar'], format='%H:%M')
@@ -116,7 +141,20 @@ class DataLoader:
         time = self.df['HAB_SDw']
         self.df['HAB_SDw'] = time / 60
         
+        columns_int = [
+            'rec_NOFOTICO_HAB_alarma_si_no',
+            'rec_FOTICO_luz_natural_8_15_integrada',
+            'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
+            'rec_NOFOTICO_estudios_integrada',
+            'rec_NOFOTICO_otra_actividad_habitual_si_no',
+            'rec_NOFOTICO_cena_integrada',
+            'rec_HAB_siesta_integrada'
+        ]
+
+        self.convert_columns_to_int(columns_int)    
+            
         self.df = self.categorize_age(self.df,20,60)
+        
         
         return self.df
     
@@ -145,6 +183,25 @@ class DataLoader:
         df['age_category'] = df['age'].apply(age_category)
         return df
     
+    def convert_columns_to_int(self, columns_to_convert):
+        """
+        Convert specified columns to integers, handling None, NaN, and specific string values correctly.
+        """
+        def convert_value(value):
+            if pd.isna(value):  # Check for NaN values
+                return 'None'  # Return the string 'None' for NaN values
+            elif value is None:
+                return 'None'  # Return the string 'None' for None values
+            elif value == 'None':
+                return 'None'  # Return the string 'None' if it is already that
+            elif value == 'XX':
+                return value  # Keep 'XX' unchanged
+            else:
+                return int(float(value))  # Convert valid string/float values to int
+
+        for column in columns_to_convert:
+            self.df[column] = self.df[column].apply(convert_value)
+        
 class StreamLit:
     def __init__(self, df, plot_id):
         self.df = df
@@ -154,6 +211,10 @@ class StreamLit:
     def initialize_filters(self):
         if 'datos_' + self.plot_id not in st.session_state:
             st.session_state['datos_' + self.plot_id] = True
+        
+        if 'selected_gender_' + self.plot_id not in st.session_state:
+            st.session_state['selected_gender_' + self.plot_id] = 0
+       
 
         if 'age_category_selectbox_' + self.plot_id not in st.session_state:
             st.session_state['age_category_selectbox_' + self.plot_id] = 'Todos'
@@ -238,13 +299,12 @@ class StreamLit:
         if not st.session_state['all_genders_checkbox_' + self.plot_id]:
             st.sidebar.selectbox(f"Select Gender", options=self.df['genero'].unique().tolist(), key='selected_gender_' + self.plot_id)
         
-
         st.sidebar.checkbox(f"Edades", key='all_ages_checkbox_' + self.plot_id)
         if not st.session_state['all_ages_checkbox_' + self.plot_id]:
             st.sidebar.slider(f"Age Range", min_value=int(self.df['age'].min()), max_value=int(self.df['age'].max()), value=(int(self.df['age'].min()), int(self.df['age'].max())), key='age_range_slider_' + self.plot_id)
             st.sidebar.selectbox(f"Seleccionar Rango Etario", ['Todos', 'Jóvenes', 'Adultos', 'Tercera Edad'], key='age_category_selectbox_' + self.plot_id)
         
-        st.sidebar.checkbox("Rangos etarios", key='define_age_category_' + self.plot_id )
+        st.sidebar.checkbox("Configurar Rangos Etarios", key='define_age_category_' + self.plot_id )
         if not st.session_state['define_age_category_'+ self.plot_id] :
             st.sidebar.number_input("Min Age for Jóvenes", min_value=0, max_value=100 ,value = 18, key='age_joven_min_'+ self.plot_id)
             st.sidebar.number_input("Min Age for Adultos", min_value=0, max_value=100,value = 30, key='age_adult_min_'+ self.plot_id)
@@ -253,6 +313,7 @@ class StreamLit:
         st.sidebar.checkbox("Mostrar datos", key='datos_' + self.plot_id)
 
 class Filters:
+    
     def __init__(self, df, plot_id):
         self.df = df
         self.result = pd.DataFrame()
@@ -328,7 +389,7 @@ class Filters:
 
         if not st.session_state[f'all_dates_checkbox_{self.plot_id}']:
             self.result = self.dates(self.result)
-
+            
         if not st.session_state[f'all_ages_checkbox_{self.plot_id}']:
             self.result = self.ages(self.result)
 
@@ -362,8 +423,61 @@ class PlotGenerator:
         self.value_counts_df = None
         self.value_counts_df_RangoEtario = None
         self.bins = None
+        self.color = custom_colors['Blue']
+        self.color_pie = blue
+    
+    def colors(self):
+        age_category = st.session_state['age_category_selectbox_' + self.plot_id]
+        gender = st.session_state['selected_gender_' + self.plot_id]
+
+        if age_category == 'Jóvenes':
+            if gender == 0:
+                self.color = custom_colors['Green_Jóvenes_0']
+                self.color_pie = green_0
+            elif gender == 1:
+                self.color = custom_colors['Green_Jóvenes_1']
+                self.color_pie = green_1
+            else:
+                self.color = custom_colors['Green_Jóvenes']
+                self.color_pie = green
+        
+        elif age_category == 'Adultos':
+            if gender == 0:
+                self.color = custom_colors['Yellow_Adultos_0']
+                self.color_pie = yellow_0
+            elif gender == 1:
+                self.color = custom_colors['Yellow_Adultos_1']
+                self.color_pie = yellow_1
+            else:
+                self.color = custom_colors['Yellow_Adultos']
+                self.color_pie = yellow
+
+        elif age_category == 'Tercera Edad':
+            if gender == 0:
+                self.color = custom_colors['Orange_TerceraEdad_0']
+                self.color_pie = orange_0
+            elif gender == 1:
+                self.color = custom_colors['Orange_TerceraEdad_1']
+                self.color_pie = orange_1
+            else:
+                self.color = custom_colors['Orange_TerceraEdad']
+                self.color_pie = orange
+        
+        elif gender == 0:
+            self.color_pie = blue_0
+            self.color = custom_colors['Blue_0']
+            
+        elif gender == 1:
+            self.color_pie = blue_1
+            self.color = custom_colors['Blue_1']
+            
+        else:
+            self.color_pie = blue
+            self.color = custom_colors['Blue']
+            
 
     def choose_plot(self):
+        self.colors()
         if st.session_state[f'plot_{self.plot_id}'] == 'Fecha de recepción de datos':
             self.temporal()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Edad':
@@ -375,6 +489,7 @@ class PlotGenerator:
         elif st.session_state[f'plot_{self.plot_id}'] == "Provincia":
             self.map()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Percepción de cambio':
+            self.colors()
             self.bar_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Exposición luz natural':
@@ -475,10 +590,10 @@ class PlotGenerator:
         fig, ax = plt.subplots(figsize=(8, 6))
         if st.session_state[f'plot_{self.plot_id}'] == 'Edad':
             value_counts = self.df[self.value_counts_df].value_counts()
-            colors = [custom_colors['Yellow_Adultos'], custom_colors['Green_Jóvenes'], custom_colors['Orange_TerceraEdad']]
+            colors = [ custom_colors['Yellow_Adultos'], custom_colors['Orange_TerceraEdad'], custom_colors['Green_Jóvenes']]
         else:
             value_counts = self.df[data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
-            colors = blue            
+            colors = self.color_pie            
         ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
         ax.set_title('', fontsize=15)
         st.pyplot(fig)
@@ -489,7 +604,7 @@ class PlotGenerator:
         grouped_data = self.df.groupby('month').size().reset_index(name='count')
         grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.lineplot(data=grouped_data, x='month', y='count', color=custom_colors['Blue'], ax=ax)
+        sns.lineplot(data=grouped_data, x='month', y='count', color=self.color, ax=ax)
         ax.set_title('', fontsize=20)
         ax.set_xlabel('', fontsize=15)
         ax.set_ylabel('', fontsize=15)
@@ -498,16 +613,16 @@ class PlotGenerator:
 
     def y_edad(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.lineplot(data=self.df, x='age', y=data_dictionary[st.session_state[f'plot_{self.plot_id}']], color=custom_colors['Blue'], ax=ax, ci=None)
+        sns.lineplot(data=self.df, x='age', y=data_dictionary[st.session_state[f'plot_{self.plot_id}']], color=self.color, ax=ax, ci=None)
         ax.set_title('', fontsize=20)
         ax.set_xlabel('Edad', fontsize=15)
         ax.set_ylabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
-        plt.xticks(rotation=45)
+        #plt.xticks(rotation=45)
         st.pyplot(fig)
 
     def histo_plot(self): 
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.histplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], kde=False, bins=self.bins, ax=ax, color=custom_colors['Blue'])
+        sns.histplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], kde=False, bins=self.bins, ax=ax, color=self.color)
         ax.set_title('', fontsize=20)
         ax.set_ylabel('Frecuencia', fontsize=15)
         ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
@@ -515,16 +630,16 @@ class PlotGenerator:
          
     def bar_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.countplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], ax=ax, color=custom_colors['Blue'])
+        sns.countplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], ax=ax, color=self.color)
         ax.set_title('', fontsize=20)
         ax.set_ylabel('Frecuencia', fontsize=15)
         ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
-        plt.xticks(rotation=45, ha='right')
+       #plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
 
     def scatter_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], y='user_id', ax=ax, color=custom_colors['Red_Antes'])
+        sns.scatterplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], y='user_id', ax=ax, color=self.color)
         ax.set_title('', fontsize=20)
         ax.set_ylabel('', fontsize=15)
         ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
@@ -534,11 +649,11 @@ class PlotGenerator:
 
     def box_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.boxplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], ax=ax, color=custom_colors['Red_Antes'])
+        sns.boxplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], ax=ax, color=self.color)
         ax.set_title('', fontsize=20)
         ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
         ax.set_ylabel('')
-        plt.xticks(rotation=45, ha='right')
+        #plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
 
     def map(self): 
@@ -566,7 +681,7 @@ def main():
                 filters = Filters(df_all, plot_id)
                 filters.choose_filter()
                 df_filtered = filters.result
-                column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'age', 'age_category', 'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ_score_total', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+                column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'age', 'age_category', 'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ_score_total','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada' ,'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',	'rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no',	'rec_NOFOTICO_cena_integrada',	'rec_HAB_siesta_integrada', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
                 df_all = df_all[column_order]
                 df_filtered = df_filtered[column_order]
 
