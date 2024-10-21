@@ -22,11 +22,11 @@ custom_colors = {
     'Green_Jóvenes_0': mcolors.rgb2hex(green[1]),  
     'Green_Jóvenes_1': mcolors.rgb2hex(green[3]),  
     'Yellow_Adultos': mcolors.rgb2hex(yellow[1]), 
-    'Yellow_Adultos_0': mcolors.rgb2hex(yellow[1]),  
-    'Yellow_Adultos_1': mcolors.rgb2hex(yellow[0]),  
-    'Orange_TerceraEdad': mcolors.rgb2hex(orange[2]),  
-    'Orange_TerceraEdad_0': mcolors.rgb2hex(orange[1]),  
-    'Orange_TerceraEdad_1': mcolors.rgb2hex(orange[3]),  
+    'Yellow_Adultos_0': mcolors.rgb2hex(yellow[0]),  
+    'Yellow_Adultos_1': mcolors.rgb2hex(yellow[2]),  
+    'Orange_TerceraEdad': mcolors.rgb2hex(orange[3]),  
+    'Orange_TerceraEdad_0': mcolors.rgb2hex(orange[2]),  
+    'Orange_TerceraEdad_1': mcolors.rgb2hex(orange[4]),  
     'Blue': mcolors.rgb2hex(blue[2]),  
     'Blue_0': mcolors.rgb2hex(blue[1]),  
     'Blue_1': mcolors.rgb2hex(blue[3])   
@@ -215,7 +215,6 @@ class StreamLit:
         if 'selected_gender_' + self.plot_id not in st.session_state:
             st.session_state['selected_gender_' + self.plot_id] = 0
        
-
         if 'age_category_selectbox_' + self.plot_id not in st.session_state:
             st.session_state['age_category_selectbox_' + self.plot_id] = 'Todos'
 
@@ -313,7 +312,6 @@ class StreamLit:
         st.sidebar.checkbox("Mostrar datos", key='datos_' + self.plot_id)
 
 class Filters:
-    
     def __init__(self, df, plot_id):
         self.df = df
         self.result = pd.DataFrame()
@@ -430,51 +428,54 @@ class PlotGenerator:
         age_category = st.session_state['age_category_selectbox_' + self.plot_id]
         gender = st.session_state['selected_gender_' + self.plot_id]
 
-        if age_category == 'Jóvenes':
-            if gender == 0:
-                self.color = custom_colors['Green_Jóvenes_0']
-                self.color_pie = green_0
-            elif gender == 1:
-                self.color = custom_colors['Green_Jóvenes_1']
-                self.color_pie = green_1
-            else:
-                self.color = custom_colors['Green_Jóvenes']
-                self.color_pie = green
-        
-        elif age_category == 'Adultos':
-            if gender == 0:
-                self.color = custom_colors['Yellow_Adultos_0']
-                self.color_pie = yellow_0
-            elif gender == 1:
-                self.color = custom_colors['Yellow_Adultos_1']
-                self.color_pie = yellow_1
-            else:
-                self.color = custom_colors['Yellow_Adultos']
-                self.color_pie = yellow
-
-        elif age_category == 'Tercera Edad':
-            if gender == 0:
-                self.color = custom_colors['Orange_TerceraEdad_0']
-                self.color_pie = orange_0
-            elif gender == 1:
-                self.color = custom_colors['Orange_TerceraEdad_1']
-                self.color_pie = orange_1
-            else:
-                self.color = custom_colors['Orange_TerceraEdad']
-                self.color_pie = orange
-        
-        elif gender == 0:
-            self.color_pie = blue_0
-            self.color = custom_colors['Blue_0']
-            
-        elif gender == 1:
-            self.color_pie = blue_1
-            self.color = custom_colors['Blue_1']
-            
-        else:
+        if st.session_state['all_genders_checkbox_' + self.plot_id] and st.session_state['all_ages_checkbox_' + self.plot_id]:
             self.color_pie = blue
             self.color = custom_colors['Blue']
-            
+
+        elif not st.session_state['all_genders_checkbox_' + self.plot_id] and st.session_state['all_ages_checkbox_' + self.plot_id]:
+            if gender == 0:
+                self.color_pie = blue_0
+                self.color = custom_colors['Blue_0']
+            elif gender == 1:
+                self.color_pie = blue_1
+                self.color = custom_colors['Blue_1']
+
+        elif not st.session_state['all_genders_checkbox_' + self.plot_id] and not st.session_state['all_ages_checkbox_' + self.plot_id]:
+            if age_category == 'Jóvenes':
+                if gender == 0:
+                    self.color = custom_colors['Green_Jóvenes_0']
+                    self.color_pie = green_0
+                elif gender == 1:
+                    self.color = custom_colors['Green_Jóvenes_1']
+                    self.color_pie = green_1
+
+            elif age_category == 'Adultos':
+                if gender == 0:
+                    self.color = custom_colors['Yellow_Adultos_0']
+                    self.color_pie = yellow_0
+                elif gender == 1:
+                    self.color = custom_colors['Yellow_Adultos_1']
+                    self.color_pie = yellow_1
+
+            elif age_category == 'Tercera Edad':
+                if gender == 0:
+                    self.color = custom_colors['Orange_TerceraEdad_0']
+                    self.color_pie = orange_0
+                elif gender == 1:
+                    self.color = custom_colors['Orange_TerceraEdad_1']
+                    self.color_pie = orange_1
+
+        elif st.session_state['all_genders_checkbox_' + self.plot_id] and not st.session_state['all_ages_checkbox_' + self.plot_id]:
+            if age_category == 'Jóvenes':
+                self.color = custom_colors['Green_Jóvenes']
+                self.color_pie = green
+            elif age_category == 'Adultos':
+                self.color = custom_colors['Yellow_Adultos']
+                self.color_pie = yellow
+            elif age_category == 'Tercera Edad':
+                self.color = custom_colors['Orange_TerceraEdad']
+                self.color_pie = orange
+
 
     def choose_plot(self):
         self.colors()
@@ -667,7 +668,12 @@ def main():
     data_loader = DataLoader()
     df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv', 'Data/Geo.csv')
     num_plots = st.sidebar.slider("Select the number of plots", min_value=1, max_value=9, value=1, step=1)
-    plots_per_row = 3 
+    if num_plots == 1:
+        plots_per_row = 1
+    elif num_plots == 2:
+        plots_per_row = 2
+    else: 
+        plots_per_row = 3
     plot_count = 0  
     
     while plot_count < num_plots:
