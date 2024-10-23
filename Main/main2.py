@@ -61,9 +61,7 @@ green_1 = adjust_palette(green, is_lighter=False)
 data_dictionary = {
     'Fecha de recepción de datos': 'date_recepcion_data',
     'Edad': 'age',
-    'Edad - Torta':'age',
     'Provincia': 'provincia',
-    'Seguiste recomendaciones': 'SEGUISTE_RECOMENDACIONES',
     'Percepción de cambio': 'RECOMENDACIONES_AJUSTE',
     'Exposición luz natural': 'FOTICO_luz_natural_8_15_integrada',
     'Exposición luz artificial': 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
@@ -142,6 +140,7 @@ class DataLoader:
         self.df['HAB_SDw'] = time / 60
         
         columns_int = [
+            'RECOMENDACIONES_AJUSTE',
             'rec_NOFOTICO_HAB_alarma_si_no',
             'rec_FOTICO_luz_natural_8_15_integrada',
             'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',
@@ -184,9 +183,6 @@ class DataLoader:
         return df
     
     def convert_columns_to_int(self, columns_to_convert):
-        """
-        Convert specified columns to integers, handling None, NaN, and specific string values correctly.
-        """
         def convert_value(value):
             if pd.isna(value):  # Check for NaN values
                 return 'None'  # Return the string 'None' for NaN values
@@ -198,10 +194,14 @@ class DataLoader:
                 return value  # Keep 'XX' unchanged
             else:
                 return int(float(value))  # Convert valid string/float values to int
-
         for column in columns_to_convert:
-            self.df[column] = self.df[column].apply(convert_value)
-        
+            if column != 'RECOMENDACIONES_AJUSTE':
+                # Apply conversion to all columns except 'RECOMENDACIONES_AJUSTE'
+                self.df[column] = self.df[column].apply(convert_value)
+            else:
+                # Handle 'RECOMENDACIONES_AJUSTE' specifically
+                self.df[column] = self.df[column].apply(lambda value: int(float(value)) if not pd.isna(value) and value != 'None' else value)
+                     
 class StreamLit:
     def __init__(self, df, plot_id):
         self.df = df
@@ -271,9 +271,7 @@ class StreamLit:
         if 'plot_' + self.plot_id not in st.session_state:
             st.session_state['plot_' + self.plot_id] = 'Edad'
         
-
     def sidebar(self):
-        
         st.sidebar.selectbox('Gráfico', list(data_dictionary.keys()), key='plot_'+ self.plot_id)
      
         st.sidebar.checkbox('Entradas - Usuarios', key='entradas_usuarios_checkbox_' + self.plot_id)
@@ -414,6 +412,7 @@ class Filters:
         if  st.session_state['define_age_category_' + self.plot_id ] == False:  
             if st.session_state['age_joven_min_' + self.plot_id] or st.session_state['age_adult_min_' + self.plot_id] or st.session_state['age_tercera_edad_min_' + self.plot_id]:  
                 self.result = self.categorize_age(self.result,st.session_state['age_joven_min_' + self.plot_id], st.session_state['age_adult_min_' + self.plot_id]  )
+
 class PlotGenerator:
     def __init__(self, df, plot_id):
         self.df = df
@@ -423,6 +422,10 @@ class PlotGenerator:
         self.bins = None
         self.color = custom_colors['Blue']
         self.color_pie = blue
+        self.x = None
+        self.x_label = None
+        self.y_scatter = None
+        self.y_scatter_label = None
     
     def colors(self):
         age_category = st.session_state['age_category_selectbox_' + self.plot_id]
@@ -475,7 +478,6 @@ class PlotGenerator:
             elif age_category == 'Tercera Edad':
                 self.color = custom_colors['Orange_TerceraEdad']
                 self.color_pie = orange
-
 
     def choose_plot(self):
         self.colors()
@@ -576,17 +578,38 @@ class PlotGenerator:
         elif st.session_state[f'plot_{self.plot_id}'] == 'MSFsc':
             self.bins = 24
             self.histo_plot()
-            self.y_edad()
+            self.x = 'age'
+            self.x_label = 'Edad'
+            self.y_x()
+            self.y_scatter = 'user_id'
+            self.y_scatter_label = ''
+            self.y_x()
+            self.y_scatter = 'SJL'
+            self.y_scatter_label = 'SJL'
+            self.scatter_plot()
+
+            
         elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Estándar De Sueño':
             self.bins = 24
             self.histo_plot()
             self.scatter_plot()
             self.box_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Jet Lag Social':
+            self.y_scatter = 'user_id'
+            self.y_scatter_label = ''
             self.scatter_plot()
             self.box_plot()
-            self.y_edad()
+            self.x = 'age'
+            self.x_label = 'Edad'
+            self.y_x()
+        elif st.session_state[f'plot_{self.plot_id}'] == 'Hora de inicio de sueño no laboral centrada':
+            self.y_scatter = 'user_id'
+            self.y_scatter_label = ''
+            self.scatter_plot()
+            self.box_plot()
+            self.x = 'age'
 
+            
     def pie_plot(self):    
         fig, ax = plt.subplots(figsize=(8, 6))
         if st.session_state[f'plot_{self.plot_id}'] == 'Edad':
@@ -612,11 +635,11 @@ class PlotGenerator:
         plt.xticks(rotation=45)
         st.pyplot(fig)
 
-    def y_edad(self):
+    def y_x(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.lineplot(data=self.df, x='age', y=data_dictionary[st.session_state[f'plot_{self.plot_id}']], color=self.color, ax=ax, ci=None)
+        sns.lineplot(data=self.df, x=self.x, y=data_dictionary[st.session_state[f'plot_{self.plot_id}']], color=self.color, ax=ax, ci=None)
         ax.set_title('', fontsize=20)
-        ax.set_xlabel('Edad', fontsize=15)
+        ax.set_xlabel(f'{self.x_label}', fontsize=15)
         ax.set_ylabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
         #plt.xticks(rotation=45)
         st.pyplot(fig)
@@ -635,14 +658,15 @@ class PlotGenerator:
         ax.set_title('', fontsize=20)
         ax.set_ylabel('Frecuencia', fontsize=15)
         ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
-       #plt.xticks(rotation=45, ha='right')
+        if st.session_state[f'plot_{self.plot_id}'] == 'MEQ Puntaje total':
+            plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
 
     def scatter_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], y='user_id', ax=ax, color=self.color)
+        sns.scatterplot(data=self.df, x=data_dictionary[st.session_state[f'plot_{self.plot_id}']], y=self.y_scatter, ax=ax, color=self.color)
         ax.set_title('', fontsize=20)
-        ax.set_ylabel('', fontsize=15)
+        ax.set_ylabel(f'{self.y_scatter_label}', fontsize=15)
         ax.set_xlabel(st.session_state[f'plot_{self.plot_id}'], fontsize=15)
         ax.yaxis.set_visible(False)
         plt.tight_layout()
