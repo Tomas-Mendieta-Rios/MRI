@@ -284,7 +284,7 @@ class StreamLit:
             max_days_diff = int(self.df['days_diff'].max())
             st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=10,  key='min_days_diff_input_'  + self.plot_id)
             st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value = 30,  key='max_days_diff_input_' + self.plot_id)
-            st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas"], key='ambas_antes_despues_' + self.plot_id)
+            st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas", 'Antes vs Después'], key='ambas_antes_despues_' + self.plot_id)
 
         st.sidebar.checkbox(f'Fechas', key='all_dates_checkbox_' + self.plot_id)
         if not st.session_state['all_dates_checkbox_' + self.plot_id]:
@@ -394,7 +394,8 @@ class Filters:
                 self.result = self.genders(self.result, genero)
         
         if not st.session_state[f'all_recommendations_checkbox_{self.plot_id}']:
-            self.result = self.recomendations(
+            if st.session_state[f'recommendations_selectbox_{self.plot_id}'] != 'Antes vs Después': 
+                self.result = self.recomendations(
                 self.result,days_min=st.session_state[f'min_days_diff_input_{self.plot_id}'],days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'],when_filter=st.session_state[f'ambas_antes_despues_{self.plot_id}'])
             
         if not st.session_state['entradas_usuarios_checkbox_' + self.plot_id]:
@@ -481,7 +482,43 @@ class PlotGenerator:
             elif age_category == 'Tercera Edad':
                 self.color = custom_colors['Orange_TerceraEdad']
                 self.color_pie = orange
-
+    
+    def recomendations(self, df, days_min, days_max, rec_filter, when_filter):
+        df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+        df = df.reset_index(drop=True)
+        final_indices = []
+        for idx in range(1, len(df)):
+            if df.loc[idx - 1, 'user_id'] == df.loc[idx, 'user_id']:
+                if rec_filter == 'Ambas':
+                    if df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
+                        if days_min <= df.loc[idx, 'days_diff'] <= days_max:
+                            if when_filter == 'Ambas':
+                                final_indices.append(idx - 1)
+                                final_indices.append(idx)
+                            elif when_filter == 'Antes':
+                                final_indices.append(idx - 1)
+                            elif when_filter == 'Después':
+                                final_indices.append(idx)
+                elif rec_filter == 'Si' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
+                    if days_min <= df.loc[idx, 'days_diff'] <= days_max:
+                        if when_filter == 'Ambas':
+                            final_indices.append(idx - 1)
+                            final_indices.append(idx)
+                        elif when_filter == 'Antes':
+                            final_indices.append(idx - 1)
+                        elif when_filter == 'Después':
+                            final_indices.append(idx)
+                elif rec_filter == 'No' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
+                    if days_min <= df.loc[idx, 'days_diff'] <= days_max:
+                        if when_filter == 'Ambas':
+                            final_indices.append(idx - 1)
+                            final_indices.append(idx)
+                        elif when_filter == 'Antes':
+                            final_indices.append(idx - 1)
+                        elif when_filter == 'Después':
+                            final_indices.append(idx)
+        return df.loc[final_indices].reset_index(drop=True)
+    
     def choose_plot(self):
         if st.session_state['selected_gender_' + self.plot_id] == '0 vs 1':
             self.hue = 'genero'
@@ -793,19 +830,35 @@ class PlotGenerator:
         st.pyplot(fig)
 
     def scatter_plot(self):
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color, hue = self.hue)
-        if st.session_state['antes_despues_' + self.plot_id] == 'Antes':
-            sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color, hue = self.hue)
-        
-        sns.scatterplot(data=self.df2, x=self.x, y=self.y, ax=ax, color=self.color, hue = self.hue)
-        ax.set_title(self.title, fontsize=20)
-        ax.set_xlabel(self.x_label, fontsize=15)
-        ax.set_ylabel(self.y_label, fontsize=15)
-        ax.yaxis.set_visible(self.y_visible)
-        if self.rotation:
-            plt.xticks(rotation=45)
-        st.pyplot(fig)
+        if st.session_state['antes_despues_' + self.plot_id] == 'Antes vs Después':
+            fig, ax = plt.subplots(figsize=(8, 6))
+            
+            sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, hue=self.hue)
+            
+            df_antes = self.recomendations(
+                self.df, st.session_state[f'min_days_diff_input_{self.plot_id}'],
+                days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],
+                rec_filter='Si', when_filter='Antes'
+            )
+            df_despues = self.recomendations(
+                self.df, st.session_state[f'min_days_diff_input_{self.plot_id}'],
+                days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],
+                rec_filter='Si', when_filter='Después'
+            )
+            
+            sns.scatterplot(data=df_antes, x=self.x, y=self.y, ax=ax, hue=self.hue, alpha=0.3, legend=False)
+            sns.scatterplot(data=df_despues, x=self.x, y=self.y, ax=ax, hue=self.hue, alpha=0.7)
+            
+            # Set titles and labels
+            ax.set_title(self.title, fontsize=20)
+            ax.set_xlabel(self.x_label, fontsize=15)
+            ax.set_ylabel(self.y_label, fontsize=15)
+            ax.yaxis.set_visible(self.y_visible)
+
+            # Display the plot
+            st.pyplot(fig)
+        print(df_antes)
+
 
     def box_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -866,4 +919,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-#streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main2.py'
+#streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main3.py'
