@@ -795,6 +795,10 @@ class PlotGenerator:
     def scatter_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
         sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color, hue = self.hue)
+        if st.session_state['antes_despues_' + self.plot_id] == 'Antes':
+            sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color, hue = self.hue)
+        
+        sns.scatterplot(data=self.df2, x=self.x, y=self.y, ax=ax, color=self.color, hue = self.hue)
         ax.set_title(self.title, fontsize=20)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel(self.y_label, fontsize=15)
