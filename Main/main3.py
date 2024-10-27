@@ -284,7 +284,7 @@ class StreamLit:
 
         st.sidebar.checkbox(f"Géneros", key='all_genders_checkbox_' + self.plot_id)
         if not st.session_state['all_genders_checkbox_' + self.plot_id]:
-            st.sidebar.selectbox(f"Select Gender", options=self.df['genero'].unique().tolist() + ['0 vs 1'], key='selected_gender_' + self.plot_id)
+            st.sidebar.selectbox(f"Select Gender", options=self.df['genero'].unique().tolist() , key='selected_gender_' + self.plot_id)
         
         st.sidebar.checkbox(f"Edades", key='all_ages_checkbox_' + self.plot_id)
         if not st.session_state['all_ages_checkbox_' + self.plot_id]:
@@ -485,19 +485,26 @@ class PlotGenerator:
 
         elif st.session_state['all_genders_checkbox_' + self.plot_id] and not st.session_state['all_ages_checkbox_' + self.plot_id]:
             if age_category == 'Jóvenes':
-                self.color = custom_colors['Green_Jóvenes']
-                self.color_pie = green
+                if gender == 0:
+                    self.color = custom_colors['Green_Jóvenes_0']
+                else:
+                    self.color = custom_colors['Green_Jóvenes_1']
             elif age_category == 'Adultos':
-                self.color = custom_colors['Yellow_Adultos']
-                self.color_pie = yellow
+                if gender == 0:
+                    self.color = custom_colors['Yellow_Adultos_0']
+                else:
+                    self.color = custom_colors['Yellow_Adultos_1']
             elif age_category == 'Tercera Edad':
-                self.color = custom_colors['Orange_TerceraEdad']
-                self.color_pie = orange
+                if gender == 0:
+                    self.color = custom_colors['Orange_TerceraEdad_0']
+                else:
+                    self.color = custom_colors['Orange_TerceraEdad_1']
+                    
     
     def choose_plot(self):
-        if st.session_state['selected_gender_' + self.plot_id] == '0 vs 1':
-            self.hue = 'genero'
+
         if st.session_state[f'plot_{self.plot_id}'] == 'Fecha de recepción de datos':
+            self.colors()
             self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
             self.df['month'] = self.df['date_recepcion_data'].dt.to_period('M')
             grouped_data = self.df.groupby('month').size().reset_index(name='count')
@@ -515,7 +522,7 @@ class PlotGenerator:
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.histo_plot()
             self.count = 'age_category'
-            self.pie_plot()
+            self.pie_edad()
         elif st.session_state[f'plot_{self.plot_id}'] == "Provincia":
             self.map()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Percepción de cambio':
@@ -760,13 +767,44 @@ class PlotGenerator:
             
     def pie_plot(self):    
         fig, ax = plt.subplots(figsize=(8, 6))
-        if st.session_state[f'plot_{self.plot_id}'] == 'Edad':
-            value_counts = self.df[self.count].value_counts()
-            colors = [ custom_colors['Yellow_Adultos'], custom_colors['Orange_TerceraEdad'], custom_colors['Green_Jóvenes']]
-        else:
+        
+        # Verificar si es "Antes vs Después"
+        if st.session_state['ambas_antes_despues_' + self.plot_id] != 'Antes vs Después':
+            # Crear el gráfico de pastel normal
             value_counts = self.df[data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
             colors = self.color_pie            
-        ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors, )
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            ax.set_title('Distribución General', fontsize=15)
+            st.pyplot(fig)
+        
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                fig,ax= plt.subplots(figsize=(8, 6))
+                value_counts_antes = self.df_combinado[self.df_combinado['Periodo'] == 'Antes'][data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
+                colors_antes = self.color_pie
+                ax.pie(value_counts_antes, labels=value_counts_antes.index, autopct='%1.1f%%', startangle=90, colors=colors_antes)
+                ax.set_title('Antes', fontsize=15)
+                st.pyplot(fig)
+            
+            with col2:
+                fig,ax= plt.subplots(figsize=(8, 6))
+                value_counts_despues = self.df_combinado[self.df_combinado['Periodo'] == 'Después'][data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
+                colors_despues = self.color_pie
+                ax.pie(value_counts_despues, labels=value_counts_despues.index, autopct='%1.1f%%', startangle=90, colors=colors_despues)
+                ax.set_title('Después', fontsize=15)
+                st.pyplot(fig)
+
+    def pie_edad(self):
+        fig, ax = plt.subplots(figsize=(8, 6))
+        if st.session_state['selected_gender_' + self.plot_id] == 0:
+            colors = [ custom_colors['Yellow_Adultos_0'], custom_colors['Orange_TerceraEdad_0'], custom_colors['Green_Jóvenes_0']]
+        elif st.session_state['selected_gender_' + self.plot_id] == 1:
+            colors = [ custom_colors['Yellow_Adultos_1'], custom_colors['Orange_TerceraEdad_1'], custom_colors['Green_Jóvenes_1']]
+        else:
+            colors = [ custom_colors['Yellow_Adultos'], custom_colors['Orange_TerceraEdad'], custom_colors['Green_Jóvenes']]
+        value_counts = self.df[self.count].value_counts()
+        ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors )
         ax.set_title('', fontsize=15)
         st.pyplot(fig)
 
@@ -836,8 +874,7 @@ class PlotGenerator:
         if self.rotation:
             plt.xticks(rotation=45)
         st.pyplot(fig)
-
-
+        
     def map(self): 
         layer = pdk.Layer("HeatmapLayer",data=self.df,  get_position='[Longitude, Latitude]',  opacity=0.9,  radius_pixels=100,  intensity=1,  )
         view_state = pdk.ViewState(latitude=self.df['Latitude'].mean(),  longitude=self.df['Longitude'].mean(),  zoom=5,  pitch=50  )
@@ -894,9 +931,7 @@ def main():
                             st.write(df_combinado)
                         else:
                             st.write(f'Cantidad : {len(df_filtered)}')  
-                            st.write(df_filtered)
-
-                            
+                            st.write(df_filtered)  
                     plot_generator = PlotGenerator(df_filtered, df_combinado, plot_id) 
                     plot_generator.choose_plot()  
 
