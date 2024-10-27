@@ -8,7 +8,6 @@ import plotly.express as px
 import seaborn.objects as so
 import matplotlib.colors as mcolors  
 
-
 st.set_page_config(layout="wide")
 
 blue = sns.color_palette("Blues", n_colors=5)
@@ -16,7 +15,6 @@ orange = sns.color_palette("Oranges", n_colors=5)
 yellow = sns.color_palette("YlOrBr", n_colors=5)
 green = sns.color_palette("Greens", n_colors=5)
 
-# Convert the Seaborn palettes to hex using matplotlib's rgb2hex
 custom_colors = {
     'Green_Jóvenes': mcolors.rgb2hex(green[2]),   
     'Green_Jóvenes_0': mcolors.rgb2hex(green[1]),  
@@ -32,20 +30,12 @@ custom_colors = {
     'Blue_1': mcolors.rgb2hex(blue[3])   
 }
 
-# Create lighter and darker versions
-# Create lighter and darker versions
 def adjust_palette(palette, is_lighter=True):
-    """
-    Adjusts the lightness or darkness of the colors in the palette.
-    is_lighter=True for lighter, is_lighter=False for darker.
-    """
     if is_lighter:
         return sns.light_palette(palette[1], n_colors=len(palette), reverse=False)
     else:
         return sns.dark_palette(palette[1], n_colors=len(palette), reverse=True)
 
-# Lighter and darker palettes
-# Lighter and darker palettes
 blue_0 = adjust_palette(blue, is_lighter=True)  # Lighter blue
 blue_1 = adjust_palette(blue, is_lighter=False)  # Darker blue
 
@@ -98,6 +88,7 @@ data_dictionary = {
 age_categories = ['Jóvenes', 'Adultos', 'Tercera Edad']
 category_colors = {'Jóvenes': custom_colors['Green_Jóvenes'],'Adultos': custom_colors['Yellow_Adultos'],'Tercera Edad': custom_colors['Orange_TerceraEdad']}
 category_colors_gender = {'Jóvenes': [custom_colors['Green_Jóvenes_0'], custom_colors['Green_Jóvenes_1']],'Adultos': [custom_colors['Yellow_Adultos_0'], custom_colors['Yellow_Adultos_1']],'Tercera Edad': [custom_colors['Orange_TerceraEdad_0'], custom_colors['Orange_TerceraEdad_1']]}
+
 class DataLoader: 
     def __init__(self):
         self.df = pd.DataFrame()
@@ -235,8 +226,8 @@ class StreamLit:
         if 'recommendations_selectbox_' + self.plot_id not in st.session_state:
             st.session_state['recommendations_selectbox_' + self.plot_id] = 'Si'
 
-        if 'antes_despues_' + self.plot_id not in st.session_state:
-            st.session_state['antes_despues_' + self.plot_id] = 'Antes'
+        if 'ambas_antes_despues_' + self.plot_id not in st.session_state:
+            st.session_state['ambas_antes_despues_' + self.plot_id] = 'Antes'
 
         if 'entradas_usuarios_filter_' + self.plot_id not in st.session_state:
             st.session_state['entradas_usuarios_filter_' + self.plot_id] = 'Entradas'
@@ -267,9 +258,10 @@ class StreamLit:
         
         if 'entradas_usuarios_checkbox_' + self.plot_id not in st.session_state:
             st.session_state['entradas_usuarios_checkbox_' + self.plot_id] = True
+        
         if 'plot_' + self.plot_id not in st.session_state:
             st.session_state['plot_' + self.plot_id] = 'Edad'
-        
+    
     def sidebar(self):
         st.sidebar.selectbox('Gráfico', list(data_dictionary.keys()), key='plot_'+ self.plot_id)
      
@@ -279,12 +271,11 @@ class StreamLit:
        
         st.sidebar.checkbox("Recomendaciones", key='all_recommendations_checkbox_' + self.plot_id)
         if not st.session_state['all_recommendations_checkbox_' + self.plot_id]:
+            
             st.sidebar.selectbox("Siguieron recomendaciones", options=['Si', 'No',"Ambas"], key='recommendations_selectbox_'  + self.plot_id)
-            min_days_diff = int(self.df['days_diff'].min())
-            max_days_diff = int(self.df['days_diff'].max())
             st.sidebar.number_input("Min days difference", min_value=0, max_value=1000, value=10,  key='min_days_diff_input_'  + self.plot_id)
             st.sidebar.number_input("Max days difference", min_value=0, max_value=1000, value = 30,  key='max_days_diff_input_' + self.plot_id)
-            st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas", 'Antes vs Después'], key='ambas_antes_despues_' + self.plot_id)
+            st.sidebar.selectbox("Antes Después", options=["Antes", "Después", "Ambas", 'Antes vs Después'  ], key='ambas_antes_despues_' + self.plot_id)
 
         st.sidebar.checkbox(f'Fechas', key='all_dates_checkbox_' + self.plot_id)
         if not st.session_state['all_dates_checkbox_' + self.plot_id]:
@@ -312,6 +303,8 @@ class Filters:
     def __init__(self, df, plot_id):
         self.df = df
         self.result = pd.DataFrame()
+        self.result_antes = pd.DataFrame()
+        self.result_despues = pd.DataFrame()
         self.plot_id = plot_id
 
     def entries_users(self, df):
@@ -381,43 +374,60 @@ class Filters:
     
     def choose_filter(self):
         self.result = self.df
+        self.result_antes = self.df
+        self.result_despues = self.df
 
         if not st.session_state[f'all_dates_checkbox_{self.plot_id}']:
             self.result = self.dates(self.result)
+            self.result_antes = self.dates(self.result_antes)
+            self.result_despues = self.dates(self.result_despues)
             
         if not st.session_state[f'all_ages_checkbox_{self.plot_id}']:
             self.result = self.ages(self.result)
+            self.result_antes = self.ages(self.result_antes)
+            self.result_despues = self.ages(self.result_despues)
 
         if  not st.session_state[f'all_genders_checkbox_{self.plot_id}']:
             if  st.session_state[f'selected_gender_{self.plot_id}'] != '0 vs 1':
                 genero = st.session_state[f'selected_gender_{self.plot_id}']
                 self.result = self.genders(self.result, genero)
-        
+                self.result_antes = self.genders(self.result_antes, genero)
+                self.result_despues = self.genders(self.result_despues, genero)
+
         if not st.session_state[f'all_recommendations_checkbox_{self.plot_id}']:
-            if st.session_state[f'recommendations_selectbox_{self.plot_id}'] != 'Antes vs Después': 
-                self.result = self.recomendations(
-                self.result,days_min=st.session_state[f'min_days_diff_input_{self.plot_id}'],days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'],when_filter=st.session_state[f'ambas_antes_despues_{self.plot_id}'])
-            
+            if st.session_state[f'ambas_antes_despues_{self.plot_id}'] != 'Antes vs Después':
+                 self.result = self.recomendations(self.result, days_min=st.session_state[f'min_days_diff_input_{self.plot_id}'],days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'], rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'], when_filter=st.session_state[f'ambas_antes_despues_{self.plot_id}'])
+            else:
+                self.result_antes = self.recomendations(self.result_antes, st.session_state[f'min_days_diff_input_{self.plot_id}'],days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'], when_filter='Antes')
+                self.result_despues = self.recomendations(self.result_despues, st.session_state[f'min_days_diff_input_{self.plot_id}'],days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],rec_filter=st.session_state[f'recommendations_selectbox_{self.plot_id}'], when_filter='Después')
+                
         if not st.session_state['entradas_usuarios_checkbox_' + self.plot_id]:
             if st.session_state[f'entradas_usuarios_filter_{self.plot_id}'] == 'Usuarios':
                 self.result = self.entries_users(self.result)
+                self.result_antes = self.entries_users(self.result_antes)
+                self.result_despues = self.entries_users(self.result_despues)
 
         if not st.session_state[f'rango_etario_{self.plot_id}']:
             self.result = self.select_age_category(self.result)
+            self.result_antes = self.select_age_category(self.result_antes)
+            self.result_despues = self.select_age_category(self.result_despues)
 
         if st.session_state[f'age_category_selectbox_{self.plot_id}'] != 'Todos':
             self.result = self.select_age_category(self.result, st.session_state[f'age_category_selectbox_{self.plot_id}'])
+            self.result_antes = self.select_age_category(self.result_antes, st.session_state[f'age_category_selectbox_{self.plot_id}'])
+            self.result_despues = self.select_age_category(self.result_despues, st.session_state[f'age_category_selectbox_{self.plot_id}'])
 
         if  st.session_state['define_age_category_' + self.plot_id ] == False:  
             if st.session_state['age_joven_min_' + self.plot_id] or st.session_state['age_adult_min_' + self.plot_id] or st.session_state['age_tercera_edad_min_' + self.plot_id]:  
-                self.result = self.categorize_age(self.result,st.session_state['age_joven_min_' + self.plot_id], st.session_state['age_adult_min_' + self.plot_id]  )
+                self.result = self.categorize_age(self.result,st.session_state['age_joven_min_' + self.plot_id], st.session_state['age_adult_min_' + self.plot_id])
+                self.result_antes = self.categorize_age(self.result_antes,st.session_state['age_joven_min_' + self.plot_id], st.session_state['age_adult_min_' + self.plot_id])
+                self.result_despues = self.categorize_age(self.result_despues,st.session_state['age_joven_min_' + self.plot_id], st.session_state['age_adult_min_' + self.plot_id])
 
 class PlotGenerator:
-    def __init__(self, df, plot_id):
+    def __init__(self, df, df_combinado, plot_id):
         self.df = df
         self.plot_id = plot_id
         self.count = None
-        self.value_counts_df_RangoEtario = None
         self.bins = None
         self.color = custom_colors['Blue']
         self.color_pie = blue
@@ -430,6 +440,7 @@ class PlotGenerator:
         self.y_visible = True
         self.order = None
         self.hue = None
+        self.df_combinado = df_combinado
     
     def colors(self):
         age_category = st.session_state['age_category_selectbox_' + self.plot_id]
@@ -483,42 +494,6 @@ class PlotGenerator:
                 self.color = custom_colors['Orange_TerceraEdad']
                 self.color_pie = orange
     
-    def recomendations(self, df, days_min, days_max, rec_filter, when_filter):
-        df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
-        df = df.reset_index(drop=True)
-        final_indices = []
-        for idx in range(1, len(df)):
-            if df.loc[idx - 1, 'user_id'] == df.loc[idx, 'user_id']:
-                if rec_filter == 'Ambas':
-                    if df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
-                        if days_min <= df.loc[idx, 'days_diff'] <= days_max:
-                            if when_filter == 'Ambas':
-                                final_indices.append(idx - 1)
-                                final_indices.append(idx)
-                            elif when_filter == 'Antes':
-                                final_indices.append(idx - 1)
-                            elif when_filter == 'Después':
-                                final_indices.append(idx)
-                elif rec_filter == 'Si' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
-                    if days_min <= df.loc[idx, 'days_diff'] <= days_max:
-                        if when_filter == 'Ambas':
-                            final_indices.append(idx - 1)
-                            final_indices.append(idx)
-                        elif when_filter == 'Antes':
-                            final_indices.append(idx - 1)
-                        elif when_filter == 'Después':
-                            final_indices.append(idx)
-                elif rec_filter == 'No' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
-                    if days_min <= df.loc[idx, 'days_diff'] <= days_max:
-                        if when_filter == 'Ambas':
-                            final_indices.append(idx - 1)
-                            final_indices.append(idx)
-                        elif when_filter == 'Antes':
-                            final_indices.append(idx - 1)
-                        elif when_filter == 'Después':
-                            final_indices.append(idx)
-        return df.loc[final_indices].reset_index(drop=True)
-    
     def choose_plot(self):
         if st.session_state['selected_gender_' + self.plot_id] == '0 vs 1':
             self.hue = 'genero'
@@ -528,7 +503,6 @@ class PlotGenerator:
             grouped_data = self.df.groupby('month').size().reset_index(name='count')
             grouped_data['month'] = grouped_data['month'].dt.to_timestamp()
             self.df = grouped_data
-    
             self.title = 'Uso de la aplicación por mes'
             self.x = 'month'
             self.y = 'count'
@@ -650,7 +624,6 @@ class PlotGenerator:
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
             self.histo_plot()
-     
         elif st.session_state[f'plot_{self.plot_id}'] == 'Horario decidir dormir - Libres':
             self.colors()
             self.bins = 24
@@ -793,14 +766,16 @@ class PlotGenerator:
         else:
             value_counts = self.df[data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
             colors = self.color_pie            
-       
         ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors, )
         ax.set_title('', fontsize=15)
         st.pyplot(fig)
 
     def lineplot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.lineplot(data=self.df, x=self.x, y=self.y, color=self.color, ax=ax,hue=self.hue, errorbar=None)
+        if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
+            sns.lineplot(data=self.df_combinado, x=self.x, y=self.y, palette=sns.light_palette(self.color, n_colors=2), ax=ax, hue='Periodo', errorbar=None)
+        else:
+            sns.lineplot(data=self.df, x=self.x, y=self.y, color=self.color, ax=ax, errorbar=None)
         ax.set_title(self.title, fontsize=20)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel(self.y_label, fontsize=15)
@@ -810,7 +785,10 @@ class PlotGenerator:
 
     def histo_plot(self): 
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.histplot(data=self.df, x=self.x, kde=False, bins=self.bins, ax=ax, color=self.color, hue = self.hue, multiple="dodge")
+        if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
+            sns.histplot(data=self.df_combinado, x=self.x, kde=False, bins=self.bins, ax=ax, palette=sns.light_palette(self.color, n_colors=2), hue='Periodo', multiple="dodge")
+        else:
+            sns.histplot(data=self.df, x=self.x, kde=False, bins=self.bins, ax=ax, color=self.color)
         ax.set_title(self.title, fontsize=20)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel(self.y_label, fontsize=15)
@@ -818,10 +796,13 @@ class PlotGenerator:
             plt.xticks(rotation=45)
         ax.yaxis.set_visible(self.y_visible)
         st.pyplot(fig)
-            
+
     def bar_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.countplot(data=self.df, x=self.x, ax=ax, color=self.color, order = self.order, hue = self.hue)
+        if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
+            sns.countplot(data=self.df_combinado, x=self.x, ax=ax, palette=sns.light_palette(self.color, n_colors=2), dodge=True, order=self.order, hue='Periodo')
+        else:
+            sns.countplot(data=self.df, x=self.x, ax=ax, color=self.color, order=self.order)
         ax.set_title(self.title, fontsize=20)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel('Frecuencia', fontsize=15)
@@ -830,45 +811,32 @@ class PlotGenerator:
         st.pyplot(fig)
 
     def scatter_plot(self):
-        if st.session_state['antes_despues_' + self.plot_id] == 'Antes vs Después':
-            fig, ax = plt.subplots(figsize=(8, 6))
-            
-            sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, hue=self.hue)
-            
-            df_antes = self.recomendations(
-                self.df, st.session_state[f'min_days_diff_input_{self.plot_id}'],
-                days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],
-                rec_filter='Si', when_filter='Antes'
-            )
-            df_despues = self.recomendations(
-                self.df, st.session_state[f'min_days_diff_input_{self.plot_id}'],
-                days_max=st.session_state[f'max_days_diff_input_{self.plot_id}'],
-                rec_filter='Si', when_filter='Después'
-            )
-            
-            sns.scatterplot(data=df_antes, x=self.x, y=self.y, ax=ax, hue=self.hue, alpha=0.3, legend=False)
-            sns.scatterplot(data=df_despues, x=self.x, y=self.y, ax=ax, hue=self.hue, alpha=0.7)
-            
-            # Set titles and labels
-            ax.set_title(self.title, fontsize=20)
-            ax.set_xlabel(self.x_label, fontsize=15)
-            ax.set_ylabel(self.y_label, fontsize=15)
-            ax.yaxis.set_visible(self.y_visible)
-
-            # Display the plot
-            st.pyplot(fig)
-        print(df_antes)
-
+        fig, ax = plt.subplots(figsize=(8, 6))
+        if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
+            sns.scatterplot(data=self.df_combinado, x=self.x, y=self.y, ax=ax, hue='Periodo', palette=sns.light_palette(self.color, n_colors=2))
+        else:
+            sns.scatterplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color)
+        ax.set_title(self.title, fontsize=20)
+        ax.set_xlabel(self.x_label, fontsize=15)
+        ax.set_ylabel(self.y_label, fontsize=15)
+        ax.yaxis.set_visible(self.y_visible)
+        if self.rotation:
+            plt.xticks(rotation=45)
+        st.pyplot(fig)
 
     def box_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.boxplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color)
+        if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
+            sns.boxplot(data=self.df_combinado, x=self.x, y=self.y, ax=ax, palette=sns.light_palette(self.color, n_colors=2), hue='Periodo')
+        else:
+            sns.boxplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color)
         ax.set_title(self.title, fontsize=20)
         ax.set_xlabel(self.x_label, fontsize=15)
         ax.set_ylabel(self.y_label, fontsize=15)
         if self.rotation:
             plt.xticks(rotation=45)
         st.pyplot(fig)
+
 
     def map(self): 
         layer = pdk.Layer("HeatmapLayer",data=self.df,  get_position='[Longitude, Latitude]',  opacity=0.9,  radius_pixels=100,  intensity=1,  )
@@ -900,23 +868,40 @@ def main():
                 filters = Filters(df_all, plot_id)
                 filters.choose_filter()
                 df_filtered = filters.result
+                df_filtered_antes = filters.result_antes
+                df_filtered_despues = filters.result_despues
                 column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'age', 'age_category', 'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ_score_total','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada' ,'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',	'rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no',	'rec_NOFOTICO_cena_integrada',	'rec_HAB_siesta_integrada', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
                 df_all = df_all[column_order]
                 df_filtered = df_filtered[column_order]
-
+    
                 df_all = df_all.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
                 df_filtered = df_filtered.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+                
+                df_filtered_antes.loc[:, 'Periodo'] = 'Antes'
+                df_filtered_despues.loc[:, 'Periodo'] = 'Después'
+
+                df_combinado = pd.concat([df_filtered_antes, df_filtered_despues], ignore_index=True)
+               
+                df_combinado = df_combinado.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+
+                
                 with col:  
                     if st.session_state['datos_' + plot_id] == False:                    
+                        
                         st.write('Datos')
-                        st.write(f'Cantidad : {len(df_filtered)}')  
-                        st.write(df_filtered)
-                    plot_generator = PlotGenerator(df_filtered, plot_id) 
+                        if st.session_state['ambas_antes_despues_' + plot_id] == 'Antes vs Después':   
+                            st.write(f'Cantidad : {len(df_combinado)}')  
+                            st.write(df_combinado)
+                        else:
+                            st.write(f'Cantidad : {len(df_filtered)}')  
+                            st.write(df_filtered)
+
+                            
+                    plot_generator = PlotGenerator(df_filtered, df_combinado, plot_id) 
                     plot_generator.choose_plot()  
 
                 plot_count += 1  
 
-if __name__ == "__main__":
-    main()
+main()
 
 #streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main3.py'
