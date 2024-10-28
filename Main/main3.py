@@ -328,38 +328,38 @@ class Filters:
     def recomendations(self, df, days_min, days_max, rec_filter, when_filter):
         df = df.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
         df = df.reset_index(drop=True)
-        final_indices = []
+        final_indices = set()  # Usamos un conjunto para evitar duplicados
         for idx in range(1, len(df)):
             if df.loc[idx - 1, 'user_id'] == df.loc[idx, 'user_id']:
                 if rec_filter == 'Ambas':
                     if df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] in ['si', 'no']:
                         if days_min <= df.loc[idx, 'days_diff'] <= days_max:
                             if when_filter == 'Ambas':
-                                final_indices.append(idx - 1)
-                                final_indices.append(idx)
+                                final_indices.update([idx - 1, idx])  # Añadimos ambos índices al conjunto
                             elif when_filter == 'Antes':
-                                final_indices.append(idx - 1)
+                                final_indices.add(idx - 1)
                             elif when_filter == 'Después':
-                                final_indices.append(idx)
+                                final_indices.add(idx)
                 elif rec_filter == 'Si' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'si':
                     if days_min <= df.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
-                            final_indices.append(idx - 1)
-                            final_indices.append(idx)
+                            final_indices.update([idx - 1, idx])
                         elif when_filter == 'Antes':
-                            final_indices.append(idx - 1)
+                            final_indices.add(idx - 1)
                         elif when_filter == 'Después':
-                            final_indices.append(idx)
+                            final_indices.add(idx)
                 elif rec_filter == 'No' and df.loc[idx, 'SEGUISTE_RECOMENDACIONES'] == 'no':
                     if days_min <= df.loc[idx, 'days_diff'] <= days_max:
                         if when_filter == 'Ambas':
-                            final_indices.append(idx - 1)
-                            final_indices.append(idx)
+                            final_indices.update([idx - 1, idx])
                         elif when_filter == 'Antes':
-                            final_indices.append(idx - 1)
+                            final_indices.add(idx - 1)
                         elif when_filter == 'Después':
-                            final_indices.append(idx)
+                            final_indices.add(idx)
+        # Convertimos el conjunto a una lista y ordenamos los índices
+        final_indices = sorted(final_indices)
         return df.loc[final_indices].reset_index(drop=True)
+
 
     def categorize_age(self, df, age_adult_min, age_tercera_edad_min):
         def age_category(age):
@@ -441,6 +441,7 @@ class PlotGenerator:
         self.order = None
         self.hue = None
         self.df_combinado = df_combinado
+        self.pie = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
     
     def colors(self):
         age_category = st.session_state['age_category_selectbox_' + self.plot_id]
@@ -449,7 +450,7 @@ class PlotGenerator:
         if st.session_state['all_genders_checkbox_' + self.plot_id] and st.session_state['all_ages_checkbox_' + self.plot_id]:
             self.color_pie = blue
             self.color = custom_colors['Blue']
-
+        
         elif not st.session_state['all_genders_checkbox_' + self.plot_id] and st.session_state['all_ages_checkbox_' + self.plot_id]:
             if gender == 0:
                 self.color_pie = blue_0
@@ -459,7 +460,16 @@ class PlotGenerator:
                 self.color = custom_colors['Blue_1']
 
         elif not st.session_state['all_genders_checkbox_' + self.plot_id] and not st.session_state['all_ages_checkbox_' + self.plot_id]:
-            if age_category == 'Jóvenes':
+            
+            if age_category == 'Todos':
+                if gender == 0:
+                    self.color = custom_colors['Blue_0']
+                    self.color_pie = blue_0
+                elif gender == 1:
+                    self.color = custom_colors['Blue_1']
+                    self.color_pie = blue_1
+            
+            elif age_category == 'Jóvenes':
                 if gender == 0:
                     self.color = custom_colors['Green_Jóvenes_0']
                     self.color_pie = green_0
@@ -484,23 +494,19 @@ class PlotGenerator:
                     self.color_pie = orange_1
 
         elif st.session_state['all_genders_checkbox_' + self.plot_id] and not st.session_state['all_ages_checkbox_' + self.plot_id]:
-            if age_category == 'Jóvenes':
-                if gender == 0:
+            if age_category == 'Todos':
+                    self.color = custom_colors['Blue']
+                    self.color_pie = blue
+            elif age_category == 'Jóvenes':
                     self.color = custom_colors['Green_Jóvenes_0']
-                else:
-                    self.color = custom_colors['Green_Jóvenes_1']
+                    self.color_pie = green
             elif age_category == 'Adultos':
-                if gender == 0:
-                    self.color = custom_colors['Yellow_Adultos_0']
-                else:
-                    self.color = custom_colors['Yellow_Adultos_1']
+                    self.color = custom_colors['Yellow_Adultos']
+                    self.color_pie = yellow
             elif age_category == 'Tercera Edad':
-                if gender == 0:
-                    self.color = custom_colors['Orange_TerceraEdad_0']
-                else:
-                    self.color = custom_colors['Orange_TerceraEdad_1']
+                    self.color = custom_colors['Orange_TerceraEdad']
+                    self.color_pie = orange
                     
-    
     def choose_plot(self):
 
         if st.session_state[f'plot_{self.plot_id}'] == 'Fecha de recepción de datos':
@@ -530,28 +536,28 @@ class PlotGenerator:
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Exposición luz natural':
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Exposición luz artificial":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Estudios no foticos integrados":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Trabajo no fotico integrado":
             self.colors()
@@ -559,21 +565,21 @@ class PlotGenerator:
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
             self.order = ['xx', '-1', '0', '1']
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Otra actividad habitual no fotica":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Cena no fotica integrada":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Horario de acostarse - Hábiles":
             self.bins = 24
@@ -608,21 +614,21 @@ class PlotGenerator:
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Siesta habitual integrada':
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Calidad de sueño - Hábiles':
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Horario de acostarse - Libres':
             self.colors()
@@ -657,93 +663,104 @@ class PlotGenerator:
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Alarma no fotica (sí/no)":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Luz natural (8-15)":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Luz artificial (8-15)":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Estudios no foticos integrados":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Trabajo no fotico integrado":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Otra actividad habitual no fotica (sí/no)":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Cena no fotica integrada":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
-            self.pie_plot()
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Recomendación - Siesta habitual integrada":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
-            self.bar_plot()
-            self.pie_plot()
+
         elif st.session_state[f'plot_{self.plot_id}'] == "MEQ Puntaje total":
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
-            self.bar_plot()
+            self.count_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'MSFsc':
             self.colors()
-            self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
-            self.x_label = st.session_state[f'plot_{self.plot_id}']
+            self.x = 'MEQ_score_total_tipo'
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.rotation = True
+            self.count_plot()
+            data_dictionary[st.session_state[f'plot_{self.plot_id}']]
+            self.pie = 'MEQ_score_total_tipo'
             self.pie_plot()
+            self.x ='age'
+            self.x_label = 'Edad'
+            self.y = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
+            self.y_label = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
+            self.scatter_plot()
+            self.y = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
+            self.y_label = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
+            self.x = 'NOFOTICO_cena_integrada'
+            self.x_label = 'Cena Integrada'
+            self.bar_plot()
+            
         elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Estándar De Sueño':
             self.bins = 24
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Jet Lag Social':
             self.colors()
+            
             self.y = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.y_label = st.session_state[f'plot_{self.plot_id}']
             self.x = 'age'
@@ -756,40 +773,44 @@ class PlotGenerator:
             self.y_label = None
             self.y_visible = False
             self.scatter_plot()
-    
+            
+            
+            self.y = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
+            self.y_visible = True
+            self.y_label = st.session_state[f'plot_{self.plot_id}']
+            self.x = 'MSFsc'
+            self.x_label = 'MSFsc'
+            self.scatter_plot()
+            
+
         elif st.session_state[f'plot_{self.plot_id}'] == 'Hora de inicio de sueño no laboral centrada':
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.bar_plot()
+            self.count_plot()
             self.pie_plot()
             
     def pie_plot(self):    
         fig, ax = plt.subplots(figsize=(8, 6))
         
-        # Verificar si es "Antes vs Después"
         if st.session_state['ambas_antes_despues_' + self.plot_id] != 'Antes vs Después':
-            # Crear el gráfico de pastel normal
-            value_counts = self.df[data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
-            colors = self.color_pie            
-            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=colors)
+            value_counts = self.df[self.pie].value_counts() 
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=self.color_pie,labeldistance=1.2, pctdistance=1)
             ax.set_title('Distribución General', fontsize=15)
             st.pyplot(fig)
-        
         else:
             col1, col2 = st.columns(2)
             with col1:
                 fig,ax= plt.subplots(figsize=(8, 6))
-                value_counts_antes = self.df_combinado[self.df_combinado['Periodo'] == 'Antes'][data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
+                value_counts_antes = self.df_combinado[self.df_combinado['Periodo'] == 'Antes'][self.pie].value_counts()
                 colors_antes = self.color_pie
                 ax.pie(value_counts_antes, labels=value_counts_antes.index, autopct='%1.1f%%', startangle=90, colors=colors_antes)
                 ax.set_title('Antes', fontsize=15)
                 st.pyplot(fig)
-            
             with col2:
                 fig,ax= plt.subplots(figsize=(8, 6))
-                value_counts_despues = self.df_combinado[self.df_combinado['Periodo'] == 'Después'][data_dictionary[st.session_state[f'plot_{self.plot_id}']]].value_counts()
+                value_counts_despues = self.df_combinado[self.df_combinado['Periodo'] == 'Después'][self.pie].value_counts()
                 colors_despues = self.color_pie
                 ax.pie(value_counts_despues, labels=value_counts_despues.index, autopct='%1.1f%%', startangle=90, colors=colors_despues)
                 ax.set_title('Después', fontsize=15)
@@ -797,10 +818,11 @@ class PlotGenerator:
 
     def pie_edad(self):
         fig, ax = plt.subplots(figsize=(8, 6))
-        if st.session_state['selected_gender_' + self.plot_id] == 0:
-            colors = [ custom_colors['Yellow_Adultos_0'], custom_colors['Orange_TerceraEdad_0'], custom_colors['Green_Jóvenes_0']]
-        elif st.session_state['selected_gender_' + self.plot_id] == 1:
-            colors = [ custom_colors['Yellow_Adultos_1'], custom_colors['Orange_TerceraEdad_1'], custom_colors['Green_Jóvenes_1']]
+        if not st.session_state['all_genders_checkbox_' + self.plot_id]:
+            if st.session_state['selected_gender_' + self.plot_id] == 0:
+                colors = [ custom_colors['Yellow_Adultos_0'], custom_colors['Orange_TerceraEdad_0'], custom_colors['Green_Jóvenes_0']]
+            elif st.session_state['selected_gender_' + self.plot_id] == 1:
+                colors = [ custom_colors['Yellow_Adultos_1'], custom_colors['Orange_TerceraEdad_1'], custom_colors['Green_Jóvenes_1']]
         else:
             colors = [ custom_colors['Yellow_Adultos'], custom_colors['Orange_TerceraEdad'], custom_colors['Green_Jóvenes']]
         value_counts = self.df[self.count].value_counts()
@@ -835,18 +857,32 @@ class PlotGenerator:
         ax.yaxis.set_visible(self.y_visible)
         st.pyplot(fig)
 
+    def count_plot(self):
+            fig, ax = plt.subplots(figsize=(8, 6))
+            if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
+                sns.countplot(data=self.df_combinado,x=self.x, ax=ax, palette=sns.light_palette(self.color, n_colors=2), dodge=True, order=self.order, hue='Periodo')
+            else:
+                sns.countplot(data=self.df, x=self.x, ax=ax, color=self.color, order=self.order)
+            ax.set_title(self.title, fontsize=20)
+            ax.set_xlabel(self.x_label, fontsize=15)
+            ax.set_ylabel('Frecuencia', fontsize=15)
+            if self.rotation:
+                plt.xticks(rotation=45, ha='right')
+            st.pyplot(fig)
+    
     def bar_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
         if st.session_state['ambas_antes_despues_' + self.plot_id] == 'Antes vs Después':
-            sns.countplot(data=self.df_combinado, x=self.x, ax=ax, palette=sns.light_palette(self.color, n_colors=2), dodge=True, order=self.order, hue='Periodo')
+            sns.barplot(data=self.df_combinado, x=self.x, y=self.y, ax=ax, palette=sns.light_palette(self.color, n_colors=2), order=self.order, hue='Periodo')
         else:
-            sns.countplot(data=self.df, x=self.x, ax=ax, color=self.color, order=self.order)
+            sns.barplot(data=self.df, x=self.x, y=self.y, ax=ax, color=self.color, order=self.order)
         ax.set_title(self.title, fontsize=20)
         ax.set_xlabel(self.x_label, fontsize=15)
-        ax.set_ylabel('Frecuencia', fontsize=15)
+        ax.set_ylabel(self.y_label, fontsize=15)
         if self.rotation:
             plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
+
 
     def scatter_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -908,6 +944,7 @@ def main():
                 df_filtered_antes = filters.result_antes
                 df_filtered_despues = filters.result_despues
                 column_order = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'age', 'age_category', 'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ_score_total','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada' ,'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',	'rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no',	'rec_NOFOTICO_cena_integrada',	'rec_HAB_siesta_integrada', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
+                column_order_combinado = ['date_recepcion_data', 'user_id', 'SEGUISTE_RECOMENDACIONES', 'days_diff', 'Periodo' ,'age', 'age_category', 'genero', 'provincia', 'localidad', 'Latitude', 'Longitude', 'RECOMENDACIONES_AJUSTE', 'date_generacion_recomendacion', 'FOTICO_luz_natural_8_15_integrada', 'FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada', 'NOFOTICO_estudios_integrada', 'NOFOTICO_trabajo_integrada', 'NOFOTICO_otra_actividad_habitual_si_no', 'NOFOTICO_cena_integrada', 'HAB_Hora_acostar', 'HAB_Hora_decidir', 'HAB_min_dormir', 'HAB_Soffw', 'NOFOTICO_HAB_alarma_si_no', 'HAB_siesta_integrada', 'HAB_calidad', 'LIB_Hora_acostar', 'LIB_Hora_decidir', 'LIB_min_dormir', 'LIB_Offf', 'LIB_alarma_si_no', 'MEQ_score_total','rec_NOFOTICO_HAB_alarma_si_no', 'rec_FOTICO_luz_natural_8_15_integrada' ,'rec_FOTICO_luz_ambiente_8_15_luzelect_si_no_integrada',	'rec_NOFOTICO_estudios_integrada', 'rec_NOFOTICO_trabajo_integrada', 'rec_NOFOTICO_otra_actividad_habitual_si_no',	'rec_NOFOTICO_cena_integrada',	'rec_HAB_siesta_integrada', 'MEQ_score_total_tipo', 'MSFsc', 'HAB_SDw', 'SJL', 'HAB_SOnw_centrado']
                 df_all = df_all[column_order]
                 df_filtered = df_filtered[column_order]
     
@@ -916,10 +953,13 @@ def main():
                 
                 df_filtered_antes.loc[:, 'Periodo'] = 'Antes'
                 df_filtered_despues.loc[:, 'Periodo'] = 'Después'
-
-                df_combinado = pd.concat([df_filtered_antes, df_filtered_despues], ignore_index=True)
-               
+                df_filtered_antes = df_filtered_antes.reset_index(drop=True)
+                df_filtered_despues = df_filtered_despues.reset_index(drop=True)
+                df_combinado = pd.concat([df_filtered_antes, df_filtered_despues], ignore_index=False)
+                df_combinado = df_combinado[column_order_combinado]
+                
                 df_combinado = df_combinado.sort_values(by=['user_id', 'date_recepcion_data'], ascending=[True, True])
+        
 
                 
                 with col:  
