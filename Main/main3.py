@@ -81,7 +81,7 @@ data_dictionary = {
     'Recomendación - Siesta habitual integrada': 'rec_HAB_siesta_integrada',
     'MEQ Puntaje total': 'MEQ_score_total_tipo',
     'MSFsc': 'MSFsc',
-    'Desviación Estándar De Sueño': 'HAB_SDw',
+    'Duración Del Sueño - Hábiles': 'HAB_SDw',
     'Desviación Jet Lag Social': 'SJL',
     'Hora de inicio de sueño no laboral centrada': 'HAB_SOnw_centrado'
 }
@@ -510,6 +510,7 @@ class PlotGenerator:
     def choose_plot(self):
 
         if st.session_state[f'plot_{self.plot_id}'] == 'Fecha de recepción de datos':
+            st.markdown("<h1 style='text-align: center; color: #FF4B4B;'>Fecha de recepción de datos</h1>", unsafe_allow_html=True)
             self.colors()
             self.df['date_recepcion_data'] = pd.to_datetime(self.df['date_recepcion_data'], format='%Y-%m-%d %H:%M:%S')
             self.df['month'] = self.df['date_recepcion_data'].dt.to_period('M')
@@ -532,6 +533,9 @@ class PlotGenerator:
         elif st.session_state[f'plot_{self.plot_id}'] == "Provincia":
             self.map()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Percepción de cambio':
+            st.write('Cuánto crees que cambiaste tus hábitos por las recomendaciones?')
+            st.write('1: Muy Poco')
+            st.write('5: Completamente')
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -539,6 +543,11 @@ class PlotGenerator:
             self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Exposición luz natural':
+            st.write('Antes de las 15:00 Estás en espacios descubiertos?')
+            st.write('0: No')
+            st.write('1: Sí, al menos 3 días a la semana')
+            st.write('1: Sí, 3 días o más por semana')
+            
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -546,20 +555,35 @@ class PlotGenerator:
             self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Exposición luz artificial":
+            st.write('Antes de las 15:00 ¿necesitás encender la luz en el ambiente en el que más estás?')
+            st.write('0: sí, casi siempre')
+            st.write('1: No, casi nunca')
+
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
             self.count_plot()
             self.pie_plot()
+        
         elif st.session_state[f'plot_{self.plot_id}'] == "Estudios no foticos integrados":
+            st.write('Si estás estudiando, ¿tenés clases?')
+            st.write('-1: No estudio y/o no tengo clases')
+            st.write('0: Sí, menos de 3 días por semana')
+            st.write('1: Sí, 3 días o más por semana')
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
             self.count_plot()
             self.pie_plot()
+        
         elif st.session_state[f'plot_{self.plot_id}'] == "Trabajo no fotico integrado":
+            st.write('Estás trabajando?')
+            st.write('XX: ??')
+            st.write('0: No')
+            st.write('-1: Sí, menos de 3 días por semana')
+            st.write('1: Sí, 3 días o más por semana')
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -568,6 +592,10 @@ class PlotGenerator:
             self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Otra actividad habitual no fotica":
+            st.write('Hacés alguna otra actividad al menos 3 veces por semana en horarios fijos??')
+            st.write('0: No')
+            st.write('1: Sí')
+        
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -575,6 +603,9 @@ class PlotGenerator:
             self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Cena no fotica integrada":
+            st.write('Cenas habitualmente en el mismo horario?')
+            st.write('0: Si')
+            st.write('-1: No')
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -582,6 +613,10 @@ class PlotGenerator:
             self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == "Horario de acostarse - Hábiles":
+            st.write('En días hábiles')
+            st.write('Días en que trabajás y/o estudias')
+            st.write('¿A qué hora te acostás?')
+            st.write('Los diás hábiles me acuesto: HH:MM AM/PM')
             self.bins = 24
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
@@ -589,6 +624,10 @@ class PlotGenerator:
             self.y_label = 'Frecuencia'
             self.histo_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Horario decidir dormir - Hábiles':
+            st.write('En días hábiles')
+            st.write('Días en que trabajás y/o estudias')
+            st.write('¿A qué hora decidís dormirte?')
+            st.write('Una vez que me acosté, decido dormirme: HH:MM AM/PM')
             self.bins = 24
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
@@ -596,6 +635,10 @@ class PlotGenerator:
             self.y_label = 'Frecuencia'
             self.histo_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Minutos dormir - Hábiles':
+            st.write('En días hábiles')
+            st.write('Días en que trabajás y/o estudias')
+            st.write('¿Cuántos minutos tardaás en dormirte?')
+            st.write('Tardo ... minutos en dormirme: Entero')
             self.bins = 24
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
@@ -603,13 +646,24 @@ class PlotGenerator:
             self.y_label = 'Frecuencia'
             self.histo_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Hora despertar - Hábiles':
+            st.write('En días hábiles')
+            st.write('Días en que trabajás y/o estudias')
+            st.write('¿A qué hora te despertás?')
+            st.write('Me despierto: HH:MM AM/PM')
             self.bins = 24
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
             self.histo_plot()
+        
         elif st.session_state[f'plot_{self.plot_id}'] == 'Alarma - Hábiles':
+            st.write('En días hábiles')
+            st.write('Días en que trabajás y/o estudias')
+            st.write('¿Usas alarma o despertador?')
+            st.write('0: Si???')
+            st.write('1: No??')
+            
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -617,6 +671,11 @@ class PlotGenerator:
             self.count_plot()
             self.pie_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Siesta habitual integrada':
+            st.write('En días hábiles')
+            st.write('Días en que trabajás y/o estudias')
+            st.write('¿Usas alarma o despertador?')
+            st.write('0: Si???')
+            st.write('1: No??')
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
@@ -727,9 +786,11 @@ class PlotGenerator:
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
+            self.rotation = True
             self.count_plot()
             self.pie_plot()
             self.count_plot()
+            self.rotation = False
         elif st.session_state[f'plot_{self.plot_id}'] == 'MSFsc':
             self.colors()
             self.x = 'MEQ_score_total_tipo'
@@ -750,14 +811,13 @@ class PlotGenerator:
             self.x_label = 'Cena Integrada'
             self.bar_plot()
             
-        elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Estándar De Sueño':
+        elif st.session_state[f'plot_{self.plot_id}'] == 'Duración Del Sueño - Hábiles':
             self.bins = 24
             self.colors()
             self.x = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x_label = st.session_state[f'plot_{self.plot_id}']
             self.y_label = 'Frecuencia'
-            self.count_plot()
-            self.pie_plot()
+            self.histo_plot()
         elif st.session_state[f'plot_{self.plot_id}'] == 'Desviación Jet Lag Social':
             self.colors()
             
@@ -796,7 +856,7 @@ class PlotGenerator:
         
         if st.session_state['ambas_antes_despues_' + self.plot_id] != 'Antes vs Después':
             value_counts = self.df[self.pie].value_counts() 
-            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=self.color_pie,labeldistance=1.2, pctdistance=1)
+            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90, colors=self.color_pie,labeldistance=1.1, pctdistance=0.5)
             ax.set_title('Distribución General', fontsize=15)
             st.pyplot(fig)
         else:
@@ -882,7 +942,6 @@ class PlotGenerator:
         if self.rotation:
             plt.xticks(rotation=45, ha='right')
         st.pyplot(fig)
-
 
     def scatter_plot(self):
         fig, ax = plt.subplots(figsize=(8, 6))
