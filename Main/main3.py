@@ -445,6 +445,8 @@ class Filters:
                 self.result_despues = self.users(self.result_despues, st.session_state['filtrar_usuarios_texto' + self.plot_id])
             if 'filtrar_usuarios_cantidad' + self.plot_id in st.session_state and st.session_state['filtrar_usuarios_cantidad' + self.plot_id]:
                 self.result = self.users_count(self.result, st.session_state['filtrar_usuarios_cantidad' + self.plot_id])
+                self.result_antes = self.users_count(self.result_antes, st.session_state['filtrar_usuarios_cantidad' + self.plot_id])
+                self.result_despues = self.users_count(self.result_despues, st.session_state['filtrar_usuarios_cantidad' + self.plot_id])
         
         if not st.session_state['entradas_usuarios_checkbox_' + self.plot_id]:
             if st.session_state[f'entradas_usuarios_filter_{self.plot_id}'] == 'Usuarios':
