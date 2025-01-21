@@ -1056,8 +1056,31 @@ class PlotGenerator:
         st.pydeck_chart(deck)
 
 def main():
+    st.title("CSV File Upload and Data Analysis")
+
+    # Initialize the DataLoader
+    
+    df_all = None  # Initialize df_all as None
+
+    # Manually upload CSV files using the file uploader
+    uploaded_before = st.file_uploader("Upload the 'Before' CSV")
+    uploaded_after = st.file_uploader("Upload the 'After' CSV")
+   
     data_loader = DataLoader()
-    df_all = data_loader.load_data('Data/allData_MiRelojInterno_24Julio2024.csv', 'Data/allData_MiRelojInterno_27Marzo2023.csv', 'Data/Geo.csv')
+
+    # Check if both files are uploaded
+    if uploaded_before is not None and uploaded_after is not None:
+        with st.spinner("Loading data..."):
+            # Load the data using the DataLoader
+            df_all = data_loader.load_data(uploaded_before, uploaded_after, 'Geo.csv')
+
+        st.success("Data loaded successfully!")
+
+    # If df_all is still None, warn the user and stop execution
+    if df_all is None:
+        st.warning("Please upload both CSV files to proceed.")
+        return
+
     num_plots = st.sidebar.slider("Select the number of plots", min_value=1, max_value=9, value=1, step=1)
     if num_plots == 1:
         plots_per_row = 1
@@ -1114,4 +1137,5 @@ def main():
 
 main()
 
-#streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/Main/main3.py'
+
+#streamlit run '/Users/tomasmendietarios/Library/Mobile Documents/com~apple~CloudDocs/I.T.B.A/MRI/main.py'
