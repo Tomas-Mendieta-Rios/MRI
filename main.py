@@ -448,9 +448,9 @@ class StreamLit:
             st.sidebar.date_input(f"Start Date", value=self.df['date_recepcion_data'].min(), key='start_date_input_' + self.plot_id)
             st.sidebar.date_input(f"End Date", value=self.df['date_recepcion_data'].max(), key='end_date_input_' + self.plot_id)
         
-        st.sidebar.checkbox(f'Persepción del cambio', key='persepcion_checkbox_' + self.plot_id)
+        st.sidebar.checkbox(f'Percepción del cambio', key='persepcion_checkbox_' + self.plot_id)
         if  st.session_state['persepcion_checkbox_' + self.plot_id]:
-            st.sidebar.selectbox(f"Persepción del cambio", options=[1,2,3,4,5] , key='persepcion_selectbox_' + self.plot_id)
+            st.sidebar.selectbox(f"Percepción del cambio", options=[1,2,3,4,5] , key='persepcion_selectbox_' + self.plot_id)
 
         st.sidebar.checkbox(f"Géneros", key='all_genders_checkbox_' + self.plot_id)
         if st.session_state['all_genders_checkbox_' + self.plot_id]:
@@ -952,7 +952,7 @@ class PlotGenerator:
             self.rotation = 45
             self.rotation2 = 80
             self.fontsize2 = 6
-            self.title = "Cantidad de usuarios por provinica"
+            self.title = "Cantidad de usuarios por provincia"
             self.count_plot()
             self.rotation = None   
         
@@ -1001,7 +1001,7 @@ class PlotGenerator:
                 data_count_despues = df_despues[df_despues[data_dictionary[st.session_state[f'plot_{self.plot_id}']]].notna()]['user_id'].nunique()
 
                 st.write("""
-                ## Análisis antes
+                ## Análisis antesƒpers
                 ### Cantidad de datos: {}
                 ### Media: {:.2f}
                 ### Mediana: {:.2f}
@@ -1054,7 +1054,7 @@ class PlotGenerator:
             self.count_plot()
             ##self.pie_plot()
             
-            self.title = 'Exposición a la luz artifical por provinica'
+            self.title = 'Exposición a la luz artifical por provincia'
             self.y_label = st.session_state[f'plot_{self.plot_id}']
             self.hue = data_dictionary[st.session_state[f'plot_{self.plot_id}']]
             self.x = 'provincia'
