@@ -40,7 +40,6 @@ et-xmlfile==1.1.0
 etelemetry==0.3.1
 fastjsonschema==2.21.1
 filelock==3.18.0
-# fitz REMOVIDO (lo reemplaza PyMuPDF)
 flatbuffers==24.3.25
 folium==0.17.0
 fonttools==4.53.1
@@ -102,15 +101,14 @@ nbformat==5.10.4
 networkx==3.4.2
 nibabel==5.3.2
 nipype==1.10.0
-# NumPy alineado para TF/SciPy
 numpy==1.26.4
 oauthlib==3.3.1
-opencv-python==4.10.0.84
+opencv-python-headless==4.10.0.84
 openpyxl==3.1.5
 opt_einsum==3.4.0
 optree==0.13.1
 ordered-set==4.1.0
-packaging==24.1
+packaging>=24.2,<25
 pandas==2.2.2
 pandas-gbq==0.29.1
 parsedatetime==2.6
@@ -132,7 +130,6 @@ pydata-google-auth==1.9.1
 pydeck==0.9.1
 pydot==3.0.4
 Pygments==2.18.0
-# Usa PyMuPDF (proporciona el módulo 'fitz')
 PyMuPDF==1.25.5
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
@@ -152,7 +149,6 @@ rsa==4.9.1
 scikit-learn==1.5.1
 scipy==1.14.1
 seaborn==0.13.2
-# setuptools fijado arriba (<75)
 shapely==2.1.1
 simplejson==3.20.1
 six==1.16.0
@@ -179,8 +175,6 @@ tzdata==2024.1
 urllib3==2.2.2
 websockets==15.0.1
 Werkzeug==3.1.3
-# wheel ya está arriba
 wrapt==1.17.0
 xyzservices==2024.9.0
 zipp==3.23.0
-# dj
